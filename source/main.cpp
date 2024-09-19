@@ -1,31 +1,3 @@
-/********************************************************************************
- * File: main.cpp
- * Author: ppkantorski
- * Description: 
- *   This file contains the main logic for the Tetris Overlay project, 
- *   a graphical overlay implementation of the classic Tetris game for the 
- *   Nintendo Switch. It integrates game state management, rendering, 
- *   and user input handling to provide a complete Tetris experience 
- *   within an overlay.
- * 
- *   Key Features:
- *   - Classic Tetris gameplay mechanics with level and score tracking.
- *   - Smooth animations and intuitive controls.
- *   - Save and load game state functionality.
- *   - Dynamic UI rendering with next and stored Tetrimino previews.
- *   - Integration with the Tesla Menu system for in-game overlay management.
- * 
- *   For the latest updates, documentation, and source code, visit the project's
- *   GitHub repository:
- *   (GitHub Repository: https://github.com/ppkantorski/Tetris-Overlay)
- * 
- *   Note: This notice is part of the project's documentation and must remain intact.
- *
- *  Licensed under GPLv2
- *  Copyright (c) 2024 ppkantorski
- ********************************************************************************/
-
-
 #define NDEBUG
 #define STBTT_STATIC
 #define TESLA_INIT_IMPL
@@ -389,86 +361,15 @@ private:
         }
     }
 
-// Method to draw the next Tetrimino
-void drawNextTetrimino(tsl::gfx::Renderer* renderer, int posX, int posY) {
-    // Define border dimensions
-    int borderWidth = _w * 2 + 8; // Small border around the 2x2 grid
-    int borderHeight = _h * 2 + 8; // Small border around the 2x2 grid
-    int borderThickness = 2; // Thickness of the border
-    int padding = 2; // Padding around the Tetrimino within the border
-
-    // Draw the border for the next Tetrimino
-    tsl::Color borderColor = tsl::Color({0xF, 0xF, 0xF, 0xF}); // White color for the border
-    // Draw the top line of the border
-    renderer->drawRect(posX - padding, posY - padding, borderWidth + 2 * padding, borderThickness, borderColor);
-    // Draw the bottom line of the border
-    renderer->drawRect(posX - padding, posY + borderHeight, borderWidth + 2 * padding, borderThickness, borderColor);
-    // Draw the left line of the border
-    renderer->drawRect(posX - padding, posY - padding, borderThickness, borderHeight + 2 * padding, borderColor);
-    // Draw the right line of the border
-    renderer->drawRect(posX + borderWidth, posY - padding, borderThickness, borderHeight + 2 * padding, borderColor);
-
-    // Calculate the dimensions of the Tetrimino
-    int minX = 4, maxX = -1, minY = 4, maxY = -1;
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            int index = getRotatedIndex(nextTetrimino->type, i, j, nextTetrimino->rotation);
-            if (tetriminoShapes[nextTetrimino->type][index] != 0) {
-                if (j < minX) minX = j;
-                if (j > maxX) maxX = j;
-                if (i < minY) minY = i;
-                if (i > maxY) maxY = i;
-            }
-        }
-    }
-    int tetriminoWidth = (maxX - minX + 1) * (_w / 2);
-    int tetriminoHeight = (maxY - minY + 1) * (_h / 2);
-
-    // Calculate offset to center the Tetrimino in the border
-    int offsetX = (borderWidth - tetriminoWidth) / 2;
-    int offsetY = (borderHeight - tetriminoHeight) / 2;
-
-    // Draw the next Tetrimino inside the border
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            int index = getRotatedIndex(nextTetrimino->type, i, j, nextTetrimino->rotation);
-            if (tetriminoShapes[nextTetrimino->type][index] != 0) {
-                // Calculate the position for the next Tetrimino centered within the border
-                int blockWidth = _w / 2;
-                int blockHeight = _h / 2;
-                int drawX = posX + (j - minX) * blockWidth + padding + offsetX;
-                int drawY = posY + (i - minY) * blockHeight + padding + offsetY;
-
-                // Draw the outer block
-                renderer->drawRect(drawX, drawY, blockWidth, blockHeight, tetriminoColors[nextTetrimino->type]);
-
-                // Calculate a darker shade for the inner block
-                tsl::Color outerColor = tetriminoColors[nextTetrimino->type];
-                tsl::Color innerColor = {
-                    static_cast<u8>(outerColor.r * 0.7), // Darker red
-                    static_cast<u8>(outerColor.g * 0.7), // Darker green
-                    static_cast<u8>(outerColor.b * 0.7), // Darker blue
-                    static_cast<u8>(outerColor.a) // Same alpha
-                };
-
-                // Draw the inner block (smaller rectangle)
-                int innerPadding = 2; // Adjust this to control the inner rectangle size
-                renderer->drawRect(drawX + innerPadding, drawY + innerPadding, blockWidth - 2 * innerPadding, blockHeight - 2 * innerPadding, innerColor);
-            }
-        }
-    }
-}
-
-// Method to draw the stored Tetrimino (similar to drawNextTetrimino)
-void drawStoredTetrimino(tsl::gfx::Renderer* renderer, int posX, int posY) {
-    if (storedTetrimino->type != -1) { // Only draw if a Tetrimino is stored
+    // Method to draw the next Tetrimino
+    void drawNextTetrimino(tsl::gfx::Renderer* renderer, int posX, int posY) {
         // Define border dimensions
         int borderWidth = _w * 2 + 8; // Small border around the 2x2 grid
         int borderHeight = _h * 2 + 8; // Small border around the 2x2 grid
         int borderThickness = 2; // Thickness of the border
         int padding = 2; // Padding around the Tetrimino within the border
-
-        // Draw the border for the stored Tetrimino
+    
+        // Draw the border for the next Tetrimino
         tsl::Color borderColor = tsl::Color({0xF, 0xF, 0xF, 0xF}); // White color for the border
         // Draw the top line of the border
         renderer->drawRect(posX - padding, posY - padding, borderWidth + 2 * padding, borderThickness, borderColor);
@@ -478,13 +379,13 @@ void drawStoredTetrimino(tsl::gfx::Renderer* renderer, int posX, int posY) {
         renderer->drawRect(posX - padding, posY - padding, borderThickness, borderHeight + 2 * padding, borderColor);
         // Draw the right line of the border
         renderer->drawRect(posX + borderWidth, posY - padding, borderThickness, borderHeight + 2 * padding, borderColor);
-
+    
         // Calculate the dimensions of the Tetrimino
         int minX = 4, maxX = -1, minY = 4, maxY = -1;
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                int index = getRotatedIndex(storedTetrimino->type, i, j, storedTetrimino->rotation);
-                if (tetriminoShapes[storedTetrimino->type][index] != 0) {
+                int index = getRotatedIndex(nextTetrimino->type, i, j, nextTetrimino->rotation);
+                if (tetriminoShapes[nextTetrimino->type][index] != 0) {
                     if (j < minX) minX = j;
                     if (j > maxX) maxX = j;
                     if (i < minY) minY = i;
@@ -494,34 +395,34 @@ void drawStoredTetrimino(tsl::gfx::Renderer* renderer, int posX, int posY) {
         }
         int tetriminoWidth = (maxX - minX + 1) * (_w / 2);
         int tetriminoHeight = (maxY - minY + 1) * (_h / 2);
-
+    
         // Calculate offset to center the Tetrimino in the border
         int offsetX = (borderWidth - tetriminoWidth) / 2;
         int offsetY = (borderHeight - tetriminoHeight) / 2;
-
-        // Draw the stored Tetrimino inside the border
+    
+        // Draw the next Tetrimino inside the border
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                int index = getRotatedIndex(storedTetrimino->type, i, j, storedTetrimino->rotation);
-                if (tetriminoShapes[storedTetrimino->type][index] != 0) {
-                    // Calculate the position for the stored Tetrimino centered within the border
+                int index = getRotatedIndex(nextTetrimino->type, i, j, nextTetrimino->rotation);
+                if (tetriminoShapes[nextTetrimino->type][index] != 0) {
+                    // Calculate the position for the next Tetrimino centered within the border
                     int blockWidth = _w / 2;
                     int blockHeight = _h / 2;
                     int drawX = posX + (j - minX) * blockWidth + padding + offsetX;
                     int drawY = posY + (i - minY) * blockHeight + padding + offsetY;
-
+    
                     // Draw the outer block
-                    renderer->drawRect(drawX, drawY, blockWidth, blockHeight, tetriminoColors[storedTetrimino->type]);
-
+                    renderer->drawRect(drawX, drawY, blockWidth, blockHeight, tetriminoColors[nextTetrimino->type]);
+    
                     // Calculate a darker shade for the inner block
-                    tsl::Color outerColor = tetriminoColors[storedTetrimino->type];
+                    tsl::Color outerColor = tetriminoColors[nextTetrimino->type];
                     tsl::Color innerColor = {
                         static_cast<u8>(outerColor.r * 0.7), // Darker red
                         static_cast<u8>(outerColor.g * 0.7), // Darker green
                         static_cast<u8>(outerColor.b * 0.7), // Darker blue
                         static_cast<u8>(outerColor.a) // Same alpha
                     };
-
+    
                     // Draw the inner block (smaller rectangle)
                     int innerPadding = 2; // Adjust this to control the inner rectangle size
                     renderer->drawRect(drawX + innerPadding, drawY + innerPadding, blockWidth - 2 * innerPadding, blockHeight - 2 * innerPadding, innerColor);
@@ -529,9 +430,78 @@ void drawStoredTetrimino(tsl::gfx::Renderer* renderer, int posX, int posY) {
             }
         }
     }
-}
-
-
+    
+    // Method to draw the stored Tetrimino (similar to drawNextTetrimino)
+    void drawStoredTetrimino(tsl::gfx::Renderer* renderer, int posX, int posY) {
+        if (storedTetrimino->type != -1) { // Only draw if a Tetrimino is stored
+            // Define border dimensions
+            int borderWidth = _w * 2 + 8; // Small border around the 2x2 grid
+            int borderHeight = _h * 2 + 8; // Small border around the 2x2 grid
+            int borderThickness = 2; // Thickness of the border
+            int padding = 2; // Padding around the Tetrimino within the border
+    
+            // Draw the border for the stored Tetrimino
+            tsl::Color borderColor = tsl::Color({0xF, 0xF, 0xF, 0xF}); // White color for the border
+            // Draw the top line of the border
+            renderer->drawRect(posX - padding, posY - padding, borderWidth + 2 * padding, borderThickness, borderColor);
+            // Draw the bottom line of the border
+            renderer->drawRect(posX - padding, posY + borderHeight, borderWidth + 2 * padding, borderThickness, borderColor);
+            // Draw the left line of the border
+            renderer->drawRect(posX - padding, posY - padding, borderThickness, borderHeight + 2 * padding, borderColor);
+            // Draw the right line of the border
+            renderer->drawRect(posX + borderWidth, posY - padding, borderThickness, borderHeight + 2 * padding, borderColor);
+    
+            // Calculate the dimensions of the Tetrimino
+            int minX = 4, maxX = -1, minY = 4, maxY = -1;
+            for (int i = 0; i < 4; ++i) {
+                for (int j = 0; j < 4; ++j) {
+                    int index = getRotatedIndex(storedTetrimino->type, i, j, storedTetrimino->rotation);
+                    if (tetriminoShapes[storedTetrimino->type][index] != 0) {
+                        if (j < minX) minX = j;
+                        if (j > maxX) maxX = j;
+                        if (i < minY) minY = i;
+                        if (i > maxY) maxY = i;
+                    }
+                }
+            }
+            int tetriminoWidth = (maxX - minX + 1) * (_w / 2);
+            int tetriminoHeight = (maxY - minY + 1) * (_h / 2);
+    
+            // Calculate offset to center the Tetrimino in the border
+            int offsetX = (borderWidth - tetriminoWidth) / 2;
+            int offsetY = (borderHeight - tetriminoHeight) / 2;
+    
+            // Draw the stored Tetrimino inside the border
+            for (int i = 0; i < 4; ++i) {
+                for (int j = 0; j < 4; ++j) {
+                    int index = getRotatedIndex(storedTetrimino->type, i, j, storedTetrimino->rotation);
+                    if (tetriminoShapes[storedTetrimino->type][index] != 0) {
+                        // Calculate the position for the stored Tetrimino centered within the border
+                        int blockWidth = _w / 2;
+                        int blockHeight = _h / 2;
+                        int drawX = posX + (j - minX) * blockWidth + padding + offsetX;
+                        int drawY = posY + (i - minY) * blockHeight + padding + offsetY;
+    
+                        // Draw the outer block
+                        renderer->drawRect(drawX, drawY, blockWidth, blockHeight, tetriminoColors[storedTetrimino->type]);
+    
+                        // Calculate a darker shade for the inner block
+                        tsl::Color outerColor = tetriminoColors[storedTetrimino->type];
+                        tsl::Color innerColor = {
+                            static_cast<u8>(outerColor.r * 0.7), // Darker red
+                            static_cast<u8>(outerColor.g * 0.7), // Darker green
+                            static_cast<u8>(outerColor.b * 0.7), // Darker blue
+                            static_cast<u8>(outerColor.a) // Same alpha
+                        };
+    
+                        // Draw the inner block (smaller rectangle)
+                        int innerPadding = 2; // Adjust this to control the inner rectangle size
+                        renderer->drawRect(drawX + innerPadding, drawY + innerPadding, blockWidth - 2 * innerPadding, blockHeight - 2 * innerPadding, innerColor);
+                    }
+                }
+            }
+        }
+    }
 };
 
 bool TetrisElement::paused = false;
@@ -855,7 +825,7 @@ public:
         } else if (keysDown & KEY_UP) {
             hardDrop(); // Fast drop the Tetrimino
         }
-        
+
         if (keysDown & KEY_A) {
             rotate(); // Rotate clockwise
             moved = true; // Consider rotation as a move
