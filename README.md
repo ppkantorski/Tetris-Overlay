@@ -1,4 +1,12 @@
 # Tetris Overlay (HOS 16.0.0+)
+[![platform](https://img.shields.io/badge/platform-Switch-898c8c?logo=C++.svg)](https://gbatemp.net/forums/nintendo-switch.283/?prefix_id=44)
+[![language](https://img.shields.io/badge/language-C++-ba1632?logo=C++.svg)](https://github.com/topics/cpp)
+[![GPLv2 License](https://img.shields.io/badge/license-GPLv2-189c11.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
+[![Latest Version](https://img.shields.io/github/v/release/ppkantorski/Tetris-Overlay?label=latest%20version&color=blue)](https://github.com/ppkantorski/Tetris-Overlay/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/ppkantorski/Tetris-Overlay/total?color=6f42c1)](https://github.com/ppkantorski/Tetris-Overlay/graphs/traffic)
+[![GitHub issues](https://img.shields.io/github/issues/ppkantorski/Tetris-Overlay?color=222222)](https://github.com/ppkantorski/Tetris-Overlay/issues)
+[![GitHub stars](https://img.shields.io/github/stars/ppkantorski/Tetris-Overlay)](https://github.com/ppkantorski/Tetris-Overlay/stargazers)
+
 
 An Ultrahand-enhanced Tesla overlay that brings classic Tetris gameplay to the overlay menu. This overlay allows for in-menu gameplay with dynamic UI elements, saving and loading of game state, and high score tracking.
 
