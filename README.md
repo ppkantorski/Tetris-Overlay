@@ -47,7 +47,7 @@ An Ultrahand-enhanced Tesla overlay that brings classic Tetris gameplay to the o
 
 ### Building
 
-1. Clone the repository and pull the latest libraries from Ultrahand Overlay:
+1. Clone the repository and pull the latest overlay libraries from Ultrahand Overlay:
     ```bash
     git clone https://github.com/ppkantorski/Tetris-Overlay.git
     cd Tetris-Overlay
