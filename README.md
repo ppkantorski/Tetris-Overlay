@@ -1,4 +1,4 @@
-# Tetris Overlay
+# Tetris Overlay (HOS 16.0.0+)
 
 An Ultrahand-enhanced Tesla overlay that brings the classic Tetris gameplay to the overlay menu. This overlay allows for in-menu gameplay with dynamic UI elements, saving and loading of game state, and high score tracking.
 
