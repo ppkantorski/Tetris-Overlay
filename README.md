@@ -61,7 +61,7 @@ An Ultrahand-enhanced Tesla overlay that brings classic Tetris gameplay to the o
     make
     ```
 
-3. The compiled overlay file (`.ovl`) will be in the project directory.
+3. The compiled overlay file (`tetris.ovl`) will be in the project directory.
 
 ## Contributing
 
