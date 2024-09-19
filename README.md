@@ -16,7 +16,7 @@ An Ultrahand-enhanced Tesla overlay that brings the classic Tetris gameplay to t
 
 ## Installation
 
-1. Ensure you have a homebrew-enabled Nintendo Switch with Ultrahand Overlay / Tesla Menu installed.
+1. Ensure you have a homebrew-enabled Nintendo Switch with [Ultrahand Overlay](https://github.com/ppkantorski/Ultrahand-Overlay) (or Tesla Menu) installed.
 2. Download the latest release of Tetris Overlay from the [Releases](https://github.com/ppkantorski/Tetris-Overlay/releases).
 3. Copy `tetris.ovl` to the `sdmc:/switch/.overlays/` directory on your Nintendo Switch's SD card.
 4. Open the [Ultrahand Overlay](https://github.com/ppkantorski/Ultrahand-Overlay) (or Tesla Menu) and launch the Tetris Overlay.
