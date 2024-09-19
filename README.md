@@ -2,6 +2,8 @@
 
 An Ultrahand-enhanced Tesla overlay that brings the classic Tetris gameplay to the overlay menu. This overlay allows for in-menu gameplay with dynamic UI elements, saving and loading of game state, and high score tracking.
 
+![Screenshot_1](.pics/screenshot_1.png)
+
 ## Features
 
 - **Ultrahand Integration:** Enhanced with Ultrahand libraries for smooth and seamless gameplay with Ultrahand system settings and improved rendering.
