@@ -31,6 +31,7 @@ An Ultrahand-enhanced Tesla overlay that brings the classic Tetris gameplay to t
 - **L Button:** Swap the current Tetrimino with the stored one.
 - **Plus (+) Button:** Pause or resume the game.
 - **A or Plus (+) on Game Over:** Restart the game.
+- **B on Pause:** Exit the game.
 
 ## Saving and Loading
 
