@@ -1,6 +1,6 @@
 # Tetris Overlay
 
-An Ultrahand-enhanced Tesla overlay that brings the classic Tetris gameplay to the overlay menu. Integrating seamlessly with the Tesla Menu system, this overlay allows for in-game play with dynamic UI elements, saving and loading of game state, and high score tracking.
+An Ultrahand-enhanced Tesla overlay that brings the classic Tetris gameplay to the overlay menu. This overlay allows for in-game play with dynamic UI elements, saving and loading of game state, and high score tracking.
 
 ## Features
 
