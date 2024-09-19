@@ -13,7 +13,7 @@
  *   - Smooth animations and intuitive controls.
  *   - Save and load game state functionality.
  *   - Dynamic UI rendering with next and stored Tetrimino previews.
- *   - Integration with the Tesla Menu system for in-game overlay management.
+ *   - Integration with Ultrahand Overlay / Tesla Menu for in-game overlay management.
  * 
  *   For the latest updates, documentation, and source code, visit the project's
  *   GitHub repository:
