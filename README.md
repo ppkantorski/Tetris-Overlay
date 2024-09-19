@@ -54,11 +54,13 @@ An Ultrahand-enhanced Tesla overlay that brings classic Tetris gameplay to the o
     chmod +x ./update_libs.sh
     ./update_libs.sh
     ```
-    The `update_libs.sh` script automates the process of downloading and updating the required `libultra` and `libtesla` libraries from the **Ultrahand Overlay** repository. It ensures the latest versions are correctly placed within the `lib` directory for the project.
+    The `update_libs.sh` script automates the process of downloading and updating the required `libultra` and `libtesla` libraries from the **Ultrahand Overlay** repository. It ensures the latest versions are correctly placed within the `lib` directory for the project.ay
+
 2. Build the project:
     ```bash
     make
     ```
+
 3. The compiled overlay file (`.ovl`) will be in the project directory.
 
 ## Contributing
