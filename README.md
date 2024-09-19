@@ -4,7 +4,7 @@ An Ultrahand-enhanced Tesla overlay that brings the classic Tetris gameplay to t
 
 ## Features
 
-- **Ultrahand Integration:** Enhanced with Ultrahand for smooth and seamless gameplay directly within the Tesla Menu system.
+- **Ultrahand Integration:** Enhanced with Ultrahand libraries for smooth and seamless gameplay with Ultrahand system settings preserved.
 - **Classic Tetris Mechanics:** Enjoy traditional Tetris gameplay, including line clears, level progression, and scoring.
 - **Dynamic UI:** Provides a responsive interface with previews of the next and stored Tetriminos.
 - **Save and Load:** Save your game progress and load previous games seamlessly.
