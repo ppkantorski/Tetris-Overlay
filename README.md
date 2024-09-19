@@ -77,6 +77,6 @@ Contributions are welcome. Fork the repository and create a pull request, or rep
 
 ## License
 
-This project is licensed and distributed under GPLv2 with a custom library utilizing CC-BY-4.0.
+This project is licensed and distributed under [GPLv2](LICENSE) with a custom library utilizing CC-BY-4.0.
 
 Copyright (c) 2024 ppkantorski
