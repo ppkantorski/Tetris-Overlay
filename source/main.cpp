@@ -1,3 +1,31 @@
+/********************************************************************************
+ * File: main.cpp
+ * Author: ppkantorski
+ * Description: 
+ *   This file contains the main logic for the Tetris Overlay project, 
+ *   a graphical overlay implementation of the classic Tetris game for the 
+ *   Nintendo Switch. It integrates game state management, rendering, 
+ *   and user input handling to provide a complete Tetris experience 
+ *   within an overlay.
+ * 
+ *   Key Features:
+ *   - Classic Tetris gameplay mechanics with level and score tracking.
+ *   - Smooth animations and intuitive controls.
+ *   - Save and load game state functionality.
+ *   - Dynamic UI rendering with next and stored Tetrimino previews.
+ *   - Integration with the Tesla Menu system for in-game overlay management.
+ * 
+ *   For the latest updates, documentation, and source code, visit the project's
+ *   GitHub repository:
+ *   (GitHub Repository: https://github.com/ppkantorski/Tetris-Overlay)
+ * 
+ *   Note: This notice is part of the project's documentation and must remain intact.
+ *
+ *  Licensed under GPLv2
+ *  Copyright (c) 2024 ppkantorski
+ ********************************************************************************/
+
+
 #define NDEBUG
 #define STBTT_STATIC
 #define TESLA_INIT_IMPL
