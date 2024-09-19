@@ -49,11 +49,12 @@ An Ultrahand-enhanced Tesla overlay that brings the classic Tetris gameplay to t
     git clone https://github.com/ppkantorski/Tetris-Overlay.git
     cd Tetris-Overlay
     ```
+    - Sidenote: You will need the latest copy of `libtesla (Ultrahand)` and `libultra`.
 2. Build the project:
     ```bash
     make
     ```
-3. The compiled overlay file (`.nro`) will be in the `output` directory.
+3. The compiled overlay file (`.ovl`) will be in the project directory.
 
 ## Contributing
 
@@ -61,14 +62,6 @@ Contributions are welcome. Fork the repository and create a pull request, or rep
 
 ## License
 
-This project is licensed under the GPLv2 License - see the [LICENSE](LICENSE) file for details.
+This project is licensed and distributed under GPLv2 with a custom library utilizing CC-BY-4.0.
 
-## Acknowledgements
-
-- **Libnx** and **DevkitPro** for the development tools.
-- **Tesla Menu System** for overlay integration support.
-- Classic **Tetris** mechanics and design.
-
-## Contact
-
-For questions or suggestions, visit the project's [GitHub Repository](https://github.com/ppkantorski/Tetris-Overlay).
+Copyright (c) 2024 ppkantorski
