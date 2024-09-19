@@ -49,7 +49,7 @@ An Ultrahand-enhanced Tesla overlay that brings the classic Tetris gameplay to t
     git clone https://github.com/ppkantorski/Tetris-Overlay.git
     cd Tetris-Overlay
     ```
-    - Sidenote: You will need to obtain the latest copy of `libtesla (Ultrahand)` and `libultra` manually.
+    - Sidenote: You will need to obtain the latest copy of [libtesla (Ultrahand)](https://download-directory.github.io/?url=https://github.com/ppkantorski/Ultrahand-Overlay/tree/main/lib/libtesla) and [libultra](https://download-directory.github.io/?url=https://github.com/ppkantorski/Ultrahand-Overlay/tree/main/lib/libultra) manually.
 2. Build the project:
     ```bash
     make
