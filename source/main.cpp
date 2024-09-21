@@ -300,11 +300,11 @@ public:
 
         score.str(std::string());
         score << "Score\n" << getScore();
-        renderer->drawString(score.str().c_str(), false, 64, 120, 20, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        renderer->drawString(score.str().c_str(), false, 64, 124, 20, tsl::Color({0xF, 0xF, 0xF, 0xF}));
         
         highScore.str(std::string());
         highScore << "High Score\n" << maxHighScore;
-        renderer->drawString(highScore.str().c_str(), false, 268, 120, 20, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        renderer->drawString(highScore.str().c_str(), false, 268, 124, 20, tsl::Color({0xF, 0xF, 0xF, 0xF}));
         
     }
 
