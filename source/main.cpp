@@ -1251,18 +1251,24 @@ private:
     bool isPositionValid(const Tetrimino& tet) {
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                // Calculate the index for the rotation
                 int rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
                 if (tetriminoShapes[tet.type][rotatedIndex] != 0) {
                     int x = tet.x + j;
                     int y = tet.y + i;
-                    if (x < 0 || x >= BOARD_WIDTH || y < 0 || y >= BOARD_HEIGHT) return false;
-                    if (board[y][x] != 0) return false;
+    
+                    // Allow pieces to be slightly above the grid (y < 0)
+                    if (x < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT) {
+                        return false; // Invalid if out of horizontal bounds or below the bottom
+                    }
+                    if (y >= 0 && board[y][x] != 0) {
+                        return false; // Check if the space is occupied (only if it's within the grid)
+                    }
                 }
             }
         }
         return true;
     }
+
 
     void placeTetrimino() {
         // Place the Tetrimino on the board
