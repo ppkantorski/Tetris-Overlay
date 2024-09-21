@@ -1006,18 +1006,30 @@ public:
     }
 
 
+    // Define constants for DAS (Delayed Auto-Shift) and ARR (Auto-Repeat Rate)
+    const int DAS = 300;  // DAS delay in milliseconds
+    const int ARR = 40;   // ARR interval in milliseconds
+    
+    // Variables to track key hold states and timing
+    std::chrono::time_point<std::chrono::system_clock> lastLeftMove, lastRightMove, lastDownMove;
+    bool leftHeld = false, rightHeld = false, downHeld = false;
+    bool leftARR = false, rightARR = false, downARR = false;
+    
     bool handleInput(u64 keysDown, u64 keysHeld, touchPosition touchInput, JoystickPosition leftJoyStick, JoystickPosition rightJoyStick) override {
+        auto currentTime = std::chrono::system_clock::now();
+        bool moved = false;
+    
         // Handle the rest of the input only if the game is not paused and not over
         if (simulatedBack) {
             keysDown |= KEY_B;
             simulatedBack = false;
         }
-        
+    
         if (simulatedSelect) {
             keysDown |= KEY_A;
             simulatedSelect = false;
         }
-        
+    
         // Handle input when the game is paused or over
         if (TetrisElement::paused || tetrisElement->gameOver) {
             if (tetrisElement->gameOver) {
@@ -1041,46 +1053,123 @@ public:
                 saveGameState();
                 tsl::Overlay::get()->close();
             }
-            
+    
             // Return true to indicate input was handled
             return true;
         }
-        
+    
         // Handle swapping with the stored Tetrimino
         if (keysDown & KEY_L && !hasSwapped) {
             swapStoredTetrimino();
             hasSwapped = true;
         }
-        
-        // Movement and rotation inputs
-        bool moved = false; // Track if the Tetrimino moved or rotated
-        if (keysDown & KEY_LEFT) {
-            moved = move(-1, 0);
-        } else if (keysDown & KEY_RIGHT) {
-            moved = move(1, 0);
-        } else if (keysDown & KEY_DOWN) {
-            moved = move(0, 1);
-        } else if (keysDown & KEY_UP) {
-            hardDrop(); // Fast drop the Tetrimino
+    
+        // Handle left movement with DAS and ARR
+        if (keysHeld & KEY_LEFT) {
+            if (!leftHeld) {
+                // First press
+                moved = move(-1, 0);
+                lastLeftMove = currentTime;
+                leftHeld = true;
+                leftARR = false; // Reset ARR phase
+            } else {
+                // DAS check
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastLeftMove).count();
+                if (!leftARR && elapsed >= DAS) {
+                    // Once DAS is reached, start ARR
+                    moved = move(-1, 0);
+                    lastLeftMove = currentTime; // Reset time for ARR phase
+                    leftARR = true;
+                } else if (leftARR && elapsed >= ARR) {
+                    // Auto-repeat after ARR interval
+                    moved = move(-1, 0);
+                    lastLeftMove = currentTime; // Keep resetting for ARR
+                }
+            }
+        } else {
+            leftHeld = false;
         }
-
+    
+        // Handle right movement with DAS and ARR
+        if (keysHeld & KEY_RIGHT) {
+            if (!rightHeld) {
+                // First press
+                moved = move(1, 0);
+                lastRightMove = currentTime;
+                rightHeld = true;
+                rightARR = false; // Reset ARR phase
+            } else {
+                // DAS check
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastRightMove).count();
+                if (!rightARR && elapsed >= DAS) {
+                    // Once DAS is reached, start ARR
+                    moved = move(1, 0);
+                    lastRightMove = currentTime;
+                    rightARR = true;
+                } else if (rightARR && elapsed >= ARR) {
+                    // Auto-repeat after ARR interval
+                    moved = move(1, 0);
+                    lastRightMove = currentTime; // Keep resetting for ARR
+                }
+            }
+        } else {
+            rightHeld = false;
+        }
+    
+        // Handle down movement with DAS and ARR for soft dropping
+        if (keysHeld & KEY_DOWN) {
+            if (!downHeld) {
+                // First press
+                moved = move(0, 1);
+                lastDownMove = currentTime;
+                downHeld = true;
+                downARR = false; // Reset ARR phase
+            } else {
+                // DAS check
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastDownMove).count();
+                if (!downARR && elapsed >= DAS) {
+                    // Once DAS is reached, start ARR
+                    moved = move(0, 1);
+                    lastDownMove = currentTime;
+                    downARR = true;
+                } else if (downARR && elapsed >= ARR) {
+                    // Auto-repeat after ARR interval
+                    moved = move(0, 1);
+                    lastDownMove = currentTime;
+                }
+            }
+        } else {
+            downHeld = false;
+        }
+    
+        // Handle hard drop with the Up key
+        if (keysDown & KEY_UP) {
+            hardDrop();  // Perform hard drop immediately
+        }
+    
+        // Handle rotation inputs
         if (keysDown & KEY_A) {
             rotate(); // Rotate clockwise
-            moved = true; // Consider rotation as a move
+            moved = true;
         } else if (keysDown & KEY_B) {
             rotateCounterclockwise(); // Rotate counterclockwise
-            moved = true; // Consider rotation as a move
-        } else if (keysDown & KEY_PLUS) {
+            moved = true;
+        }
+    
+        // Handle pause/unpause
+        if (keysDown & KEY_PLUS) {
             TetrisElement::paused = !TetrisElement::paused;
         }
-        
-        // If moved or rotated, reset the lock delay timer
+    
+        // Reset the lock delay timer if the piece has moved or rotated
         if (moved) {
             lockDelayCounter = std::chrono::milliseconds(0);
         }
-        
+    
         return false;
     }
+    
+    
 
 private:
     std::array<std::array<int, BOARD_WIDTH>, BOARD_HEIGHT> board{};
