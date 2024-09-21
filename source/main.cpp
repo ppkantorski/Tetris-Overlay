@@ -550,8 +550,8 @@ public:
         
         
         x = 20;
-        y = 50;
-        fontSize = 42;
+        y = 62;
+        fontSize = 54;
         offset = 6;
         countOffset = 0;
         
@@ -659,7 +659,7 @@ public:
             renderer->drawString(SOC_temperatureStr, false, tsl::cfg::FramebufferWidth + offset - renderer->calculateStringWidth(SOC_temperatureStr, 20, true) - renderer->calculateStringWidth(PCB_temperatureStr, 20, true) - renderer->calculateStringWidth(chargeString, 20, true) - 22, y_offset, 20, a(tsl::GradientColor(SOC_temperature)));
         }
 
-        renderer->drawString(this->m_subtitle, false, 20, y+25, 15, a(tsl::versionTextColor));
+        renderer->drawString(this->m_subtitle, false, 184, y-8, 15, a(tsl::versionTextColor));
         
         renderer->drawRect(15, tsl::cfg::FramebufferHeight - 73, tsl::cfg::FramebufferWidth - 30, 1, a(tsl::botttomSeparatorColor));
         
@@ -1408,7 +1408,7 @@ public:
             THEME_CONFIG_INI_PATH = "sdmc:/config/tetris/theme.ini"; // Override theme path (optional)
         if (isFileOrDirectory("sdmc:/config/tetris/wallpaper.rgba"))
             WALLPAPER_PATH = "sdmc:/config/tetris/wallpaper.rgba"; // Overrride wallpaper path (optional)
-        
+
         tsl::initializeThemeVars(); // for ultrahand themes
         tsl::initializeUltrahandSettings(); // for opaque screenshots and swipe to open
     }
