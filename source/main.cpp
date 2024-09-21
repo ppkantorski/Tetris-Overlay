@@ -13,7 +13,7 @@
  *   - Smooth animations and intuitive controls.
  *   - Save and load game state functionality.
  *   - Dynamic UI rendering with next and stored Tetrimino previews.
- *   - Integration with Ultrahand Overlay / Tesla Menu for in-game overlay management.
+ *   - Integration with the Tesla Menu system for in-game overlay management.
  * 
  *   For the latest updates, documentation, and source code, visit the project's
  *   GitHub repository:
@@ -37,6 +37,9 @@
 #include <vector>
 #include <ctime>
 #include <chrono>
+
+
+bool isGameOver = false;
 
 // Define the Tetrimino shapes
 const std::array<std::array<int, 16>, 7> tetriminoShapes = {{
@@ -218,8 +221,20 @@ public:
 
     virtual void draw(tsl::gfx::Renderer* renderer) override {
         // Center the board in the frame
-        int offsetX = (this->getWidth() - BOARD_WIDTH * _w) / 2;
-        int offsetY = (this->getHeight() - BOARD_HEIGHT * _h) / 2;
+        int boardWidthInPixels = BOARD_WIDTH * _w;
+        int boardHeightInPixels = BOARD_HEIGHT * _h;
+        int offsetX = (this->getWidth() - boardWidthInPixels) / 2;
+        int offsetY = (this->getHeight() - boardHeightInPixels) / 2;
+
+
+        // Define the semi-transparent black background color
+        tsl::Color overlayColor = tsl::Color({0x0, 0x0, 0x0, 0x7}); // Semi-transparent black color
+        
+        // Draw the black background rectangle (slightly larger than the frame)
+        int backgroundPadding = 4; // Padding around the frame for the black background
+        renderer->drawRect(offsetX - backgroundPadding, offsetY - backgroundPadding,
+                           boardWidthInPixels + 2 * backgroundPadding, boardHeightInPixels + 2 * backgroundPadding, overlayColor);
+
 
         // Draw the board frame
         tsl::Color frameColor = tsl::Color({0xF, 0xF, 0xF, 0xF}); // White color for frame
@@ -235,21 +250,25 @@ public:
         renderer->drawRect(offsetX + BOARD_WIDTH * _w, offsetY - frameThickness, frameThickness, BOARD_HEIGHT * _h + 2 * frameThickness, frameColor);
 
 
+
         // Draw the board
+        int drawX, drawY;
+        tsl::Color innerColor(0), outerColor(0);
+
         for (int y = 0; y < BOARD_HEIGHT; ++y) {
             for (int x = 0; x < BOARD_WIDTH; ++x) {
                 if ((*board)[y][x] != 0) {
-                    int drawX = offsetX + x * _w;
-                    int drawY = offsetY + y * _h;
+                    drawX = offsetX + x * _w;
+                    drawY = offsetY + y * _h;
         
                     // Get the color for the current block
-                    tsl::Color outerColor = tetriminoColors[(*board)[y][x] - 1];
+                    outerColor = tetriminoColors[(*board)[y][x] - 1];
         
                     // Draw the outer block
                     renderer->drawRect(drawX, drawY, _w, _h, outerColor);
         
                     // Calculate a darker shade for the inner block
-                    tsl::Color innerColor = {
+                    innerColor = {
                         static_cast<u8>(outerColor.r * 0.7), // Darker red
                         static_cast<u8>(outerColor.g * 0.7), // Darker green
                         static_cast<u8>(outerColor.b * 0.7), // Darker blue
@@ -279,7 +298,9 @@ public:
         std::ostringstream levelStr;
         levelStr << "Level\n" << level;
         renderer->drawString(levelStr.str().c_str(), false, offsetX + BOARD_WIDTH * _w + 12, offsetY + 80+50, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
-    
+        
+
+        renderer->drawString("", false, 74, offsetY + 74, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
 
         // Draw the current Tetrimino
         drawTetrimino(renderer, *currentTetrimino, offsetX, offsetY);
@@ -287,9 +308,7 @@ public:
         // Draw score and status text
         if (gameOver || paused) {
             // Draw a semi-transparent black overlay over the board
-            tsl::Color overlayColor = tsl::Color({0x0, 0x0, 0x0, 0x7}); // Semi-transparent black color (A=0x7 for semi-transparency)
-            int boardWidthInPixels = BOARD_WIDTH * _w;
-            int boardHeightInPixels = BOARD_HEIGHT * _h;
+            //tsl::Color overlayColor = tsl::Color({0x0, 0x0, 0x0, 0x7}); // Semi-transparent black color (A=0x7 for semi-transparency)
             renderer->drawRect(offsetX, offsetY, boardWidthInPixels, boardHeightInPixels, overlayColor);
         
             // Calculate the center position of the board
@@ -396,6 +415,15 @@ private:
         int borderThickness = 2; // Thickness of the border
         int padding = 2; // Padding around the Tetrimino within the border
     
+        // Define the black background color
+        tsl::Color overlayColor = tsl::Color({0x0, 0x0, 0x0, 0x7}); // Semi-transparent black color
+        
+        // Draw the black background rectangle (slightly larger than the border)
+        renderer->drawRect(posX - padding - borderThickness, posY - padding - borderThickness,
+                           borderWidth + 2 * padding + 2 * borderThickness, borderHeight + 2 * padding + 2 * borderThickness, overlayColor);
+        
+
+
         // Draw the border for the next Tetrimino
         tsl::Color borderColor = tsl::Color({0xF, 0xF, 0xF, 0xF}); // White color for the border
         // Draw the top line of the border
@@ -460,24 +488,32 @@ private:
     
     // Method to draw the stored Tetrimino (similar to drawNextTetrimino)
     void drawStoredTetrimino(tsl::gfx::Renderer* renderer, int posX, int posY) {
-        if (storedTetrimino->type != -1) { // Only draw if a Tetrimino is stored
-            // Define border dimensions
-            int borderWidth = _w * 2 + 8; // Small border around the 2x2 grid
-            int borderHeight = _h * 2 + 8; // Small border around the 2x2 grid
-            int borderThickness = 2; // Thickness of the border
-            int padding = 2; // Padding around the Tetrimino within the border
+        // Define border dimensions
+        int borderWidth = _w * 2 + 8; // Small border around the 2x2 grid
+        int borderHeight = _h * 2 + 8; // Small border around the 2x2 grid
+        int borderThickness = 2; // Thickness of the border
+        int padding = 2; // Padding around the Tetrimino within the border
     
-            // Draw the border for the stored Tetrimino
-            tsl::Color borderColor = tsl::Color({0xF, 0xF, 0xF, 0xF}); // White color for the border
-            // Draw the top line of the border
-            renderer->drawRect(posX - padding, posY - padding, borderWidth + 2 * padding, borderThickness, borderColor);
-            // Draw the bottom line of the border
-            renderer->drawRect(posX - padding, posY + borderHeight, borderWidth + 2 * padding, borderThickness, borderColor);
-            // Draw the left line of the border
-            renderer->drawRect(posX - padding, posY - padding, borderThickness, borderHeight + 2 * padding, borderColor);
-            // Draw the right line of the border
-            renderer->drawRect(posX + borderWidth, posY - padding, borderThickness, borderHeight + 2 * padding, borderColor);
+        // Define the black background color
+        tsl::Color overlayColor = tsl::Color({0x0, 0x0, 0x0, 0x7}); // Semi-transparent black color
+        
+        // Draw the black background rectangle (slightly larger than the border)
+        renderer->drawRect(posX - padding - borderThickness, posY - padding - borderThickness,
+                           borderWidth + 2 * padding + 2 * borderThickness, borderHeight + 2 * padding + 2 * borderThickness, overlayColor);
     
+        // Draw the border for the stored Tetrimino
+        tsl::Color borderColor = tsl::Color({0xF, 0xF, 0xF, 0xF}); // White color for the border
+        // Draw the top line of the border
+        renderer->drawRect(posX - padding, posY - padding, borderWidth + 2 * padding, borderThickness, borderColor);
+        // Draw the bottom line of the border
+        renderer->drawRect(posX - padding, posY + borderHeight, borderWidth + 2 * padding, borderThickness, borderColor);
+        // Draw the left line of the border
+        renderer->drawRect(posX - padding, posY - padding, borderThickness, borderHeight + 2 * padding, borderColor);
+        // Draw the right line of the border
+        renderer->drawRect(posX + borderWidth, posY - padding, borderThickness, borderHeight + 2 * padding, borderColor);
+    
+        // Only render the stored Tetrimino if it exists (type != -1)
+        if (storedTetrimino->type != -1) {
             // Calculate the dimensions of the Tetrimino
             int minX = 4, maxX = -1, minY = 4, maxY = -1;
             for (int i = 0; i < 4; ++i) {
@@ -529,10 +565,232 @@ private:
             }
         }
     }
+    
 };
 
 bool TetrisElement::paused = false;
 uint64_t TetrisElement::maxHighScore = 0; // Initialize the max high score
+
+
+class CustomOverlayFrame : public tsl::elm::OverlayFrame {
+public:
+    CustomOverlayFrame(const std::string& title, const std::string& subtitle, const std::string& menuMode = "", const std::string& colorSelection = "", const std::string& pageLeftName = "", const std::string& pageRightName = "", const bool& _noClickableItems = false)
+        : tsl::elm::OverlayFrame(title, subtitle, menuMode, colorSelection, pageLeftName, pageRightName, _noClickableItems) {}
+
+    // Override the draw method to customize rendering logic for Tetris
+    virtual void draw(tsl::gfx::Renderer* renderer) override {
+        if (m_noClickableItems != noClickableItems)
+            noClickableItems = m_noClickableItems;
+        renderer->fillScreen(a(tsl::defaultBackgroundColor));
+        
+        if (expandedMemory && !refreshWallpaper.load(std::memory_order_acquire)) {
+            inPlot.store(true, std::memory_order_release);
+            if (!wallpaperData.empty()) {
+                // Draw the bitmap at position (0, 0) on the screen
+                if (!refreshWallpaper.load(std::memory_order_acquire))
+                    renderer->drawBitmap(0, 0, 448, 720, wallpaperData.data());
+                else
+                    inPlot.store(false, std::memory_order_release);
+            } else {
+                inPlot.store(false, std::memory_order_release);
+            }
+        }
+        
+
+        if (touchingMenu && inMainMenu) {
+            renderer->drawRoundedRect(0.0f, 12.0f, 245.0f, 73.0f, 6.0f, a(tsl::clickColor));
+        }
+        
+        
+        x = 20;
+        y = 50;
+        fontSize = 42;
+        offset = 6;
+        countOffset = 0;
+        
+
+        if (!tsl::disableColorfulLogo) {
+            auto currentTimeCount = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+            float progress;
+            static auto dynamicLogoRGB1 = tsl::hexToRGB444Floats("#6929ff");
+            static auto dynamicLogoRGB2 = tsl::hexToRGB444Floats("#fff429");
+            for (char letter : m_title) {
+                counter = (2 * M_PI * (fmod(currentTimeCount/4.0, 2.0) + countOffset) / 2.0);
+                progress = std::sin(3.0 * (counter - (2.0 * M_PI / 3.0))); // Faster transition from -1 to 1 and back in the remaining 1/3
+                
+                tsl::highlightColor = {
+                    static_cast<u8>((std::get<0>(dynamicLogoRGB2) - std::get<0>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<0>(dynamicLogoRGB1)),
+                    static_cast<u8>((std::get<1>(dynamicLogoRGB2) - std::get<1>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<1>(dynamicLogoRGB1)),
+                    static_cast<u8>((std::get<2>(dynamicLogoRGB2) - std::get<2>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<2>(dynamicLogoRGB1)),
+                    15
+                };
+                
+                renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, a(tsl::highlightColor));
+                x += renderer->calculateStringWidth(std::string(1, letter), fontSize);
+                countOffset -= 0.2F;
+            }
+        } else {
+            for (char letter : m_title) {
+                renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, a(tsl::logoColor1));
+                x += renderer->calculateStringWidth(std::string(1, letter), fontSize);
+                countOffset -= 0.2F;
+            }
+        }
+        
+        
+        if (!(hideBattery && hidePCBTemp && hideSOCTemp && hideClock)) {
+            renderer->drawRect(245, 23, 1, 49, a(tsl::separatorColor));
+        }
+        
+        
+        y_offset = 45;
+        if ((hideBattery && hidePCBTemp && hideSOCTemp) || hideClock) {
+            y_offset += 10;
+        }
+        
+        clock_gettime(CLOCK_REALTIME, &currentTime);
+        if (!hideClock) {
+            static char timeStr[20]; // Allocate a buffer to store the time string
+            strftime(timeStr, sizeof(timeStr), datetimeFormat.c_str(), localtime(&currentTime.tv_sec));
+            localizeTimeStr(timeStr);
+            renderer->drawString(timeStr, false, tsl::cfg::FramebufferWidth - renderer->calculateStringWidth(timeStr, 20, true) - 20, y_offset, 20, a(tsl::clockColor));
+            y_offset += 22;
+        }
+        
+
+        static char PCB_temperatureStr[10];
+        static char SOC_temperatureStr[10];
+
+
+        size_t statusChange = size_t(hideSOCTemp) + size_t(hidePCBTemp) + size_t(hideBattery);
+        static size_t lastStatusChange = 0;
+
+        if ((currentTime.tv_sec - timeOut) >= 1 || statusChange != lastStatusChange) {
+            if (!hideSOCTemp) {
+                ReadSocTemperature(&SOC_temperature);
+                snprintf(SOC_temperatureStr, sizeof(SOC_temperatureStr) - 1, "%d°C", SOC_temperature);
+            } else {
+                strcpy(SOC_temperatureStr, "");
+                SOC_temperature=0;
+            }
+            if (!hidePCBTemp) {
+                ReadPcbTemperature(&PCB_temperature);
+                snprintf(PCB_temperatureStr, sizeof(PCB_temperatureStr) - 1, "%d°C", PCB_temperature);
+            } else {
+                strcpy(PCB_temperatureStr, "");
+                PCB_temperature=0;
+            }
+            if (!hideBattery) {
+                powerGetDetails(&batteryCharge, &isCharging);
+                batteryCharge = std::min(batteryCharge, 100U);
+                sprintf(chargeString, "%d%%", batteryCharge);
+            } else {
+                strcpy(chargeString, "");
+                batteryCharge=0;
+            }
+            timeOut = int(currentTime.tv_sec);
+        }
+
+        lastStatusChange = statusChange;
+        
+        if (!hideBattery && batteryCharge > 0) {
+            tsl::Color batteryColorToUse = isCharging ? tsl::Color(0x0, 0xF, 0x0, 0xF) : 
+                                    (batteryCharge < 20 ? tsl::Color(0xF, 0x0, 0x0, 0xF) : tsl::batteryColor);
+            renderer->drawString(chargeString, false, tsl::cfg::FramebufferWidth - renderer->calculateStringWidth(chargeString, 20, true) - 22, y_offset, 20, a(batteryColorToUse));
+        }
+        
+        offset = 0;
+        if (!hidePCBTemp && PCB_temperature > 0) {
+            if (!hideBattery)
+                offset -= 5;
+            renderer->drawString(PCB_temperatureStr, false, tsl::cfg::FramebufferWidth + offset - renderer->calculateStringWidth(PCB_temperatureStr, 20, true) - renderer->calculateStringWidth(chargeString, 20, true) - 22, y_offset, 20, a(tsl::GradientColor(PCB_temperature)));
+        }
+        
+        if (!hideSOCTemp && SOC_temperature > 0) {
+            if (!hidePCBTemp || !hideBattery)
+                offset -= 5;
+            renderer->drawString(SOC_temperatureStr, false, tsl::cfg::FramebufferWidth + offset - renderer->calculateStringWidth(SOC_temperatureStr, 20, true) - renderer->calculateStringWidth(PCB_temperatureStr, 20, true) - renderer->calculateStringWidth(chargeString, 20, true) - 22, y_offset, 20, a(tsl::GradientColor(SOC_temperature)));
+        }
+
+        renderer->drawString(this->m_subtitle, false, 20, y+25, 15, a(tsl::versionTextColor));
+        
+        renderer->drawRect(15, tsl::cfg::FramebufferHeight - 73, tsl::cfg::FramebufferWidth - 30, 1, a(tsl::botttomSeparatorColor));
+        
+
+        static std::string bCommand;
+        static std::string aCommand;
+
+        if (isGameOver) {
+            bCommand = BACK;
+            aCommand = "New Game";
+            m_noClickableItems = false;
+        } else if (TetrisElement::paused) {
+            bCommand = BACK;
+            aCommand = "";
+            m_noClickableItems = true;
+        } else {
+            bCommand = "Rotate Left";
+            aCommand = "Rotate Right";
+            m_noClickableItems = false;
+        }
+
+        backWidth = renderer->calculateStringWidth(bCommand, 23);
+        if (touchingBack) {
+            renderer->drawRoundedRect(18.0f, static_cast<float>(tsl::cfg::FramebufferHeight - 73), 
+                                      backWidth+68.0f, 73.0f, 6.0f, a(tsl::clickColor));
+        }
+
+        selectWidth = renderer->calculateStringWidth(aCommand, 23);
+        if (touchingSelect && !m_noClickableItems) {
+            renderer->drawRoundedRect(18.0f + backWidth+68.0f, static_cast<float>(tsl::cfg::FramebufferHeight - 73), 
+                                      selectWidth+68.0f, 73.0f, 6.0f, a(tsl::clickColor));
+        }
+        
+        if (!(this->m_pageLeftName).empty())
+            nextPageWidth = renderer->calculateStringWidth(this->m_pageLeftName, 23);
+        else if (!(this->m_pageRightName).empty())
+            nextPageWidth = renderer->calculateStringWidth(this->m_pageRightName, 23);
+        else if (inMainMenu)
+            if (inOverlaysPage)
+                nextPageWidth = renderer->calculateStringWidth(PACKAGES,23);
+            else if (inPackagesPage)
+                nextPageWidth = renderer->calculateStringWidth(OVERLAYS,23);
+
+        if (inMainMenu || !(this->m_pageLeftName).empty() || !(this->m_pageRightName).empty()) {
+            if (touchingNextPage) {
+                renderer->drawRoundedRect(18.0f + backWidth+68.0f + ((!m_noClickableItems) ? selectWidth+68.0f : 0), static_cast<float>(tsl::cfg::FramebufferHeight - 73), 
+                                          nextPageWidth+70.0f, 73.0f, 6.0f, a(tsl::clickColor));
+            }
+        }
+
+
+        if (m_noClickableItems)
+            menuBottomLine = "\uE0E1"+GAP_2+bCommand+GAP_1;
+        else
+            menuBottomLine = "\uE0E1"+GAP_2+bCommand+GAP_1+"\uE0E0"+GAP_2+aCommand+GAP_1;
+
+        if (this->m_menuMode == "packages") {
+            menuBottomLine += "\uE0ED"+GAP_2+OVERLAYS;
+        } else if (this->m_menuMode == "overlays") {
+            menuBottomLine += "\uE0EE"+GAP_2+PACKAGES;
+        }
+        
+        if (!(this->m_pageLeftName).empty()) {
+            menuBottomLine += "\uE0ED"+GAP_2 + this->m_pageLeftName;
+        } else if (!(this->m_pageRightName).empty()) {
+            menuBottomLine += "\uE0EE"+GAP_2 + this->m_pageRightName;
+        }
+        
+        
+        // Render the text with special character handling
+        renderer->drawStringWithColoredSections(menuBottomLine, {"\uE0E1","\uE0E0","\uE0ED","\uE0EE"}, 30, 693, 23, a(tsl::bottomTextColor), a(tsl::buttonColor));
+
+        
+        if (this->m_contentElement != nullptr)
+            this->m_contentElement->frame(renderer);
+    }
+};
+
 
 class TetrisGui : public tsl::Gui {
 public:
@@ -554,7 +812,8 @@ public:
     }
 
     virtual tsl::elm::Element* createUI() override {
-        auto rootFrame = new tsl::elm::OverlayFrame("Tetris", APP_VERSION);
+        //auto rootFrame = new tsl::elm::OverlayFrame("Tetris", APP_VERSION);
+        auto rootFrame = new CustomOverlayFrame("Tetris", APP_VERSION);
         tetrisElement = new TetrisElement(_w, _h, &board, &currentTetrimino, &nextTetrimino, &storedTetrimino); // Pass storedTetrimino
         rootFrame->setContent(tetrisElement);
         timeSinceLastFrame = std::chrono::system_clock::now();
@@ -598,6 +857,7 @@ public:
     }
 
     void resetGame() {
+        isGameOver = false;
         // Clear the board
         for (auto& row : board) {
             row.fill(0);
@@ -631,18 +891,21 @@ public:
     
     void swapStoredTetrimino() {
         if (storedTetrimino.type == -1) {
-            // If there is no stored Tetrimino, store the current one and spawn a new one
+            // No stored Tetrimino, store the current one and spawn a new one
             storedTetrimino = currentTetrimino;
+            storedTetrimino.rotation = 0;  // Reset the rotation of the stored piece to its default
             spawnNewTetrimino();
         } else {
             // Swap the current Tetrimino with the stored one
             std::swap(currentTetrimino, storedTetrimino);
-            // Reset position and rotation of the swapped Tetrimino
             currentTetrimino.x = BOARD_WIDTH / 2 - 2;
             currentTetrimino.y = 0;
-            currentTetrimino.rotation = 0;
+            currentTetrimino.rotation = 0;  // Reset the swapped piece's rotation to default
+            storedTetrimino.rotation = 0;  // Reset the stored piece's rotation to default
         }
     }
+
+    
 
 
     void hardDrop() {
@@ -811,6 +1074,7 @@ public:
         // Handle input when the game is paused or over
         if (TetrisElement::paused || tetrisElement->gameOver) {
             if (tetrisElement->gameOver) {
+                isGameOver = true;
                 if (keysDown & KEY_A || keysDown & KEY_PLUS) {
                     // Restart game
                     resetGame();
@@ -1097,6 +1361,11 @@ public:
         ASSERT_FATAL(socketInitializeDefault());
         ASSERT_FATAL(nifmInitialize(NifmServiceType_User));
         ASSERT_FATAL(smInitialize());
+
+        if (isFileOrDirectory("sdmc:/config/tetris/theme.ini"))
+            THEME_CONFIG_INI_PATH = "sdmc:/config/tetris/theme.ini"; // Override theme path (optional)
+        if (isFileOrDirectory("sdmc:/config/tetris/wallpaper.rgba"))
+            WALLPAPER_PATH = "sdmc:/config/tetris/wallpaper.rgba"; // Overrride wallpaper path (optional)
         tsl::initializeThemeVars();
     }
 
