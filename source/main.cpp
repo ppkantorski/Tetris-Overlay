@@ -1408,7 +1408,9 @@ public:
             THEME_CONFIG_INI_PATH = "sdmc:/config/tetris/theme.ini"; // Override theme path (optional)
         if (isFileOrDirectory("sdmc:/config/tetris/wallpaper.rgba"))
             WALLPAPER_PATH = "sdmc:/config/tetris/wallpaper.rgba"; // Overrride wallpaper path (optional)
-        tsl::initializeThemeVars();
+        
+        tsl::initializeThemeVars(); // for ultrahand themes
+        tsl::initializeUltrahandSettings(); // for opaque screenshots and swipe to open
     }
 
     virtual void exitServices() override {
