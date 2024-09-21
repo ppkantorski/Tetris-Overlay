@@ -259,12 +259,12 @@ public:
         // Draw the number of lines cleared
         std::ostringstream linesStr;
         linesStr << "Lines\n" << linesCleared;
-        renderer->drawString(linesStr.str().c_str(), false, offsetX + BOARD_WIDTH * _w + 12, offsetY + 80, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        renderer->drawString(linesStr.str().c_str(), false, offsetX + BOARD_WIDTH * _w + 14, offsetY + 80, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
         
         // Draw the current level
         std::ostringstream levelStr;
         levelStr << "Level\n" << level;
-        renderer->drawString(levelStr.str().c_str(), false, offsetX + BOARD_WIDTH * _w + 12, offsetY + 80+50, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        renderer->drawString(levelStr.str().c_str(), false, offsetX + BOARD_WIDTH * _w + 14, offsetY + 80+50, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
         
 
         renderer->drawString("", false, 74, offsetY + 74, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
@@ -300,11 +300,11 @@ public:
 
         score.str(std::string());
         score << "Score\n" << getScore();
-        renderer->drawString(score.str().c_str(), false, 68, 116, 20, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        renderer->drawString(score.str().c_str(), false, 64, 120, 20, tsl::Color({0xF, 0xF, 0xF, 0xF}));
         
         highScore.str(std::string());
         highScore << "High Score\n" << maxHighScore;
-        renderer->drawString(highScore.str().c_str(), false, 270, 116, 20, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        renderer->drawString(highScore.str().c_str(), false, 268, 120, 20, tsl::Color({0xF, 0xF, 0xF, 0xF}));
         
     }
 
@@ -407,12 +407,12 @@ private:
         }
     
         // Calculate the width and height of the next Tetrimino in blocks
-        int tetriminoWidth = (maxX - minX + 1) * (_w / 2);
-        int tetriminoHeight = (maxY - minY + 1) * (_h / 2);
+        float tetriminoWidth = (maxX - minX + 1) * (_w / 2);
+        float tetriminoHeight = (maxY - minY + 1) * (_h / 2);
     
         // Correctly calculate the offset to center the Tetrimino
-        int offsetX = (borderWidth - tetriminoWidth) / 2 -2;
-        int offsetY = (borderHeight - tetriminoHeight) / 2 -2;
+        int offsetX = std::ceil((borderWidth - tetriminoWidth) / 2. -2.);
+        int offsetY = std::ceil((borderHeight - tetriminoHeight) / 2. -2.);
     
         // Draw the next Tetrimino within the preview area
         for (int i = 0; i < 4; ++i) {
@@ -433,7 +433,7 @@ private:
                         static_cast<u8>(outerColor.r * 0.7), // Darker red
                         static_cast<u8>(outerColor.g * 0.7), // Darker green
                         static_cast<u8>(outerColor.b * 0.7), // Darker blue
-                        outerColor.a
+                        static_cast<u8>(outerColor.a)
                     };
     
                     // Draw the inner block (smaller rectangle)
@@ -475,11 +475,11 @@ private:
                 }
             }
     
-            int tetriminoWidth = (maxX - minX + 1) * (_w / 2);
-            int tetriminoHeight = (maxY - minY + 1) * (_h / 2);
+            float tetriminoWidth = (maxX - minX + 1) * (_w / 2);
+            float tetriminoHeight = (maxY - minY + 1) * (_h / 2);
     
-            int offsetX = (borderWidth - tetriminoWidth) / 2 -2;
-            int offsetY = (borderHeight - tetriminoHeight) / 2 -2;
+            int offsetX = std::ceil((borderWidth - tetriminoWidth) / 2. -2.);
+            int offsetY = std::ceil((borderHeight - tetriminoHeight) / 2. -2.);
     
             // Draw the stored Tetrimino in the preview area
             for (int i = 0; i < 4; ++i) {
@@ -499,7 +499,7 @@ private:
                             static_cast<u8>(outerColor.r * 0.7),
                             static_cast<u8>(outerColor.g * 0.7),
                             static_cast<u8>(outerColor.b * 0.7),
-                            outerColor.a
+                            static_cast<u8>(outerColor.a)
                         };
     
                         int innerPadding = 2;
