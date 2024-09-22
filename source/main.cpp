@@ -369,7 +369,7 @@ public:
             std::chrono::duration<float, std::milli> elapsedTime = currentTime - textStartTime;
         
             // Define total duration of the fade effect
-            float fadeDuration = 2000.0f;  // Total time in milliseconds (2 seconds)
+            float fadeDuration = 1500.0f;  // Total time in milliseconds (2 seconds)
             float fadeAlpha = 0.0f;
         
             // Map the elapsed time to a sine wave for smooth fade-in and fade-out
@@ -391,7 +391,7 @@ public:
             u8 alphaValue = static_cast<u8>(fadeAlpha * 15);  // Scale alpha smoothly from 0 to 15
         
             // Calculate horizontal center of the text
-            int textX = (this->getWidth() - renderer->calculateStringWidth(linesClearedText.c_str(), 24)) / 2;
+            int textX;
         
             // Calculate vertical center of the board
             int boardHeightInPixels = BOARD_HEIGHT * _h;  // Height of the board in pixels
@@ -399,6 +399,7 @@ public:
         
             // Check if the text is "Tetris" to apply color transition
             if (linesClearedText == "Tetris") {
+                textX = (this->getWidth() - renderer->calculateStringWidth(linesClearedText.c_str(), 30)) / 2;
                 // Color transition settings
                 auto currentTimeCount = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
                 static auto dynamicLogoRGB1 = tsl::hexToRGB444Floats("#6929ff");  // Starting color
@@ -428,6 +429,7 @@ public:
                     countOffset -= 0.2f;  // Slightly delay the color effect for each letter
                 }
             } else {
+                textX = (this->getWidth() - renderer->calculateStringWidth(linesClearedText.c_str(), 24)) / 2;
                 // Draw the text normally for any other string
                 tsl::Color textColor(0xF, 0xF, 0xF, alphaValue);  // Use fadeAlpha to adjust the transparency
                 renderer->drawString(linesClearedText.c_str(), false, textX, boardCenterY, 24, textColor);
@@ -535,7 +537,7 @@ private:
                         static_cast<u8>(color.r * 0.7),
                         static_cast<u8>(color.g * 0.7),
                         static_cast<u8>(color.b * 0.7),
-                        color.a
+                        static_cast<u8>(color.a)
                     };
                     renderer->drawRect(x + 4, y + 4, _w - 8, _h - 8, innerColor);
                 }
@@ -1524,8 +1526,6 @@ private:
         hasSwapped = false; // Reset the swap flag after placing a Tetrimino
     }
     
-
-    // Update the clearLines function to calculate the center position and trigger animation
     void clearLines() {
         int linesClearedInThisTurn = 0;
         int totalYPosition = 0;  // To calculate average Y-position for cleared lines
@@ -1547,10 +1547,10 @@ private:
                 for (int x = 0; x < BOARD_WIDTH; ++x) {
                     for (int p = 0; p < 10; ++p) {  // 10 particles per block
                         particles.push_back(Particle{
-                            x * _w + _w / 2,  // X position (center of block)
-                            i * _h + _h / 2,  // Y position (center of block)
-                            (rand() % 100 / 50.0f - 1.0f) * 8, // Random X velocity
-                            (rand() % 100 / 50.0f - 1.0f) * 8, // Random Y velocity
+                            static_cast<float>(x * _w + _w / 2),  // X position (center of block)
+                            static_cast<float>(i * _h + _h / 2),  // Y position (center of block)
+                            (rand() % 100 / 50.0f - 1.0f) * 8,    // Random X velocity
+                            (rand() % 100 / 50.0f - 1.0f) * 8,    // Random Y velocity
                             0.5f,  // Shorter lifespan
                             1.0f   // Full opacity
                         });
@@ -1568,6 +1568,7 @@ private:
                 }
             }
         }
+    
         
         if (linesClearedInThisTurn > 0) {
             // Set the appropriate text based on the number of lines cleared
