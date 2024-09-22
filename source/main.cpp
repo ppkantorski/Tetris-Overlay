@@ -200,13 +200,17 @@ bool isPositionValid(const Tetrimino& tet, const std::array<std::array<int, BOAR
                 int x = tet.x + j;
                 int y = tet.y + i;
 
-                // Ensure x is within board width and y is within board height
-                if (x < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT) {
-                    return false; // Out of horizontal bounds or below the board
+                // Ensure x is within board width
+                if (x < 0 || x >= BOARD_WIDTH) {
+                    return false; // Out of horizontal bounds
                 }
-                // Check if the block is within a valid area of the board (y >= 0) and not occupied
-                if (y >= 0 && board[y][x] != 0) {
-                    return false; // The space is occupied by another block
+
+                // Skip checking if y < 0, as this is above the visible board
+                if (y >= 0) {
+                    // Check if the space is occupied by another block
+                    if (y >= BOARD_HEIGHT || board[y][x] != 0) {
+                        return false; // The space is occupied or out of bounds vertically
+                    }
                 }
             }
         }
@@ -518,24 +522,33 @@ private:
     
     // Helper function to draw a single Tetrimino (handles both ghost and normal rendering)
     void drawSingleTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tet, int offsetX, int offsetY, bool isGhost) {
+        static tsl::Color color(0);
+        static tsl::Color innerColor(0);
+        int rotatedIndex;
+        int x, y;
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                int rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
+                rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
                 if (tetriminoShapes[tet.type][rotatedIndex] != 0) {
-                    int x = offsetX + (tet.x + j) * _w;
-                    int y = offsetY + (tet.y + i) * _h;
+                    x = offsetX + (tet.x + j) * _w;
+                    y = offsetY + (tet.y + i) * _h;
+    
+                    // Skip rendering for blocks above the top of the visible board
+                    if (tet.y + i < 0) {
+                        continue;
+                    }
                     
-                    tsl::Color color = tetriminoColors[tet.type];
+                    color = tetriminoColors[tet.type];
                     if (isGhost) {
                         // Make the ghost piece semi-transparent
-                        color.a = static_cast<u8>(color.a * 0.3);  // Adjust transparency
+                        color.a = static_cast<u8>(color.a * 0.3);  // Adjust transparency for ghost piece
                     }
                     
                     // Draw the outer block
                     renderer->drawRect(x, y, _w, _h, color);
                     
                     // Draw the inner block (darker shade)
-                    tsl::Color innerColor = {
+                    innerColor = {
                         static_cast<u8>(color.r * 0.7),
                         static_cast<u8>(color.g * 0.7),
                         static_cast<u8>(color.b * 0.7),
@@ -546,6 +559,7 @@ private:
             }
         }
     }
+
 
     void drawTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tet, int offsetX, int offsetY) {
         // Calculate the drop position for the ghost piece
@@ -1483,39 +1497,39 @@ private:
     bool tSpinOccurred = false; // Add this member to TetrisGui class
     
     void rotatePiece(int direction) {
-        // Store previous state in case rotation is invalid
         int previousRotation = currentTetrimino.rotation;
         int previousX = currentTetrimino.x;
         int previousY = currentTetrimino.y;
-        
+    
         // Update rotation (Clockwise: -1, Counterclockwise: +1)
         currentTetrimino.rotation = (currentTetrimino.rotation + direction + 4) % 4;
-        
-        // Determine which wall kick data to use (I-piece vs others)
+    
+        // Determine which wall kick table to use (I-piece vs others)
         const auto& kicks = (currentTetrimino.type == 0) ? wallKicksI : wallKicksJLSTZ;
         
-        // Apply wall kicks
+        // Iterate through the kicks for the specific rotation change
         for (int i = 0; i < 5; ++i) {
             // Wall kicks are defined between two states: current to the new one
-            int kickIndex = direction > 0 ? previousRotation : currentTetrimino.rotation;
+            int kickIndex = (direction > 0) ? previousRotation : currentTetrimino.rotation;
             const auto& kick = kicks[kickIndex][i];
-            
-            // Apply kick
+    
+            // Apply the kick
             currentTetrimino.x = previousX + kick.first;
             currentTetrimino.y = previousY + kick.second;
-            
+    
             // Check if the new position is valid
             if (isPositionValid(currentTetrimino, board)) {
-                // If valid, rotation is successful
+                // Successfully applied the wall kick
                 return;
             }
         }
-        
-        // If no valid rotation was found, revert to the previous state
+    
+        // Revert if no valid rotation was found
         currentTetrimino.rotation = previousRotation;
         currentTetrimino.x = previousX;
         currentTetrimino.y = previousY;
     }
+
 
     bool isTSpin() {
         if (currentTetrimino.type != 5) return false; // Only T piece can T-Spin
@@ -1684,7 +1698,7 @@ private:
         currentTetrimino = Tetrimino(nextTetrimino.type);
         currentTetrimino.x = BOARD_WIDTH / 2 - 2;
         currentTetrimino.y = 0; // Start from the top
-        
+    
         // Check if the new Tetrimino is in a valid position
         if (!isPositionValid(currentTetrimino, board)) {
             // Game over: the new Tetrimino can't be placed
@@ -1693,6 +1707,7 @@ private:
             nextTetrimino = Tetrimino(rand() % 7); // Prepare the next piece
         }
     }
+
 
 
 };
