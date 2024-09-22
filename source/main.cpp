@@ -49,6 +49,7 @@ struct Particle {
     float alpha;     // Transparency (fades out)
 };
 
+const int MAX_PARTICLES = 800;
 std::vector<Particle> particles;
 
 
@@ -1436,41 +1437,18 @@ private:
     std::chrono::milliseconds getFallSpeed() {
         // Define the fall speeds in milliseconds based on levels (simulating classic Tetris)
         const std::array<int, 30> fallSpeeds = {
-            800, // Level 0: 800ms per row drop
-            720, // Level 1
-            630, // Level 2
-            550, // Level 3
-            470, // Level 4
-            380, // Level 5
-            300, // Level 6
-            220, // Level 7
-            130, // Level 8
-            100, // Level 9
-            80,  // Level 10
-            80,  // Level 11
-            80,  // Level 12
-            80,  // Level 13
-            70,  // Level 14
-            70,  // Level 15
-            70,  // Level 16
-            50,  // Level 17
-            50,  // Level 18
-            50,  // Level 19
-            30,  // Level 20
-            30,  // Level 21
-            30,  // Level 22
-            20,  // Level 23
-            20,  // Level 24
-            20,  // Level 25
-            20,  // Level 26
-            20,  // Level 27
-            20,  // Level 28
-            16   // Level 29 and above (maximum speed, 16ms per row)
+            800, 720, 630, 550, 470, 380, 300, 220, 130, 100, 
+            80,  80,  80,  80,  70,  70,  70,  50,  50,  50,
+            30,  30,  30,  20,  20,  20,  20,  20,  20,  16
         };
-    
-        // If the current level is 29 or higher, return the max speed (Level 29 speed)
+        
+        // Get the appropriate fall speed for the current level, clamping if necessary
         int level = std::min(tetrisElement->getLevel(), static_cast<int>(fallSpeeds.size() - 1));
-        return std::chrono::milliseconds(fallSpeeds[level]);
+        
+        // Set a minimum threshold for fall speed to avoid it becoming too fast
+        int fallSpeed = std::max(fallSpeeds[level], 16); // Minimum 16ms
+        
+        return std::chrono::milliseconds(fallSpeed);
     }
 
 
@@ -1641,7 +1619,14 @@ private:
     
                 // Remove the full line and create particles for line clear effect
                 for (int x = 0; x < BOARD_WIDTH; ++x) {
-                    for (int p = 0; p < 10; ++p) {  // Generate particles for each block
+                    for (int p = 0; p < 10; ++p) {
+                        // Check if the total number of particles exceeds the limit
+                        if (particles.size() >= MAX_PARTICLES) {
+                            // Remove the oldest particle to make space for new ones
+                            particles.erase(particles.begin());
+                        }
+                        
+                        // Add the new particle
                         particles.push_back(Particle{
                             static_cast<float>(x * _w + _w / 2),
                             static_cast<float>(i * _h + _h / 2),
@@ -1652,6 +1637,7 @@ private:
                         });
                     }
                 }
+
     
                 // Shift rows down after clearing the full line
                 for (int y = i; y > 0; --y) {
