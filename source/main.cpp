@@ -948,6 +948,8 @@ public:
     Tetrimino storedTetrimino{-1}; // -1 indicates no stored Tetrimino
     bool hasSwapped = false; // To track if a swap has already occurred
 
+    int linesClearedForLevelUp = 0;  // Track how many lines cleared for leveling up
+    const int LINES_PER_LEVEL = 10;  // Increment level every 10 lines
 
     TetrisGui() : board(), currentTetrimino(rand() % 7), nextTetrimino(rand() % 7) {
 
@@ -958,8 +960,7 @@ public:
         lockDelayCounter = std::chrono::milliseconds(0);
 
         // Initial fall speed (1000 ms = 1 second)
-        initialFallSpeed = std::chrono::milliseconds(500); 
-        fallSpeed = initialFallSpeed;
+        initialFallSpeed = std::chrono::milliseconds(500);
         fallCounter = std::chrono::milliseconds(0);
     }
 
@@ -981,13 +982,9 @@ public:
             auto currentTime = std::chrono::system_clock::now();
             auto elapsed = currentTime - timeSinceLastFrame;
 
-
-            // Adjust fall speed based on score
-            adjustFallSpeed();
-
             // Handle piece falling
             fallCounter += std::chrono::duration_cast<std::chrono::milliseconds>(elapsed);
-            if (fallCounter >= fallSpeed) {
+            if (fallCounter >= getFallSpeed()) {  // Use dynamic fall speed calculation
                 // Try to move the piece down
                 if (!move(0, 1)) { // Move down failed, piece touched the ground
                     lockDelayCounter += fallCounter; // Add elapsed time to lock delay counter
@@ -1032,7 +1029,7 @@ public:
         tetrisElement->setLevel(1); // Reset level to 1
         
         // Reset fall speed to initial state
-        adjustFallSpeed();
+        //adjustFallSpeed();
         
         // Reset game over state
         tetrisElement->gameOver = false;
@@ -1061,26 +1058,28 @@ public:
     
 
     void hardDrop() {
-        // Calculate how far the piece can drop
-        int dropDistance = calculateDropDistance(currentTetrimino, board);
-        
-        // Apply the drop
-        currentTetrimino.y += dropDistance;
+        // Calculate how far the piece will fall
+        hardDropDistance = calculateDropDistance(currentTetrimino, board);
+        currentTetrimino.y += hardDropDistance;
         
         // Award points for hard drop (e.g., 2 points per row)
-        int hardDropScore = dropDistance * 2;
+        int hardDropScore = hardDropDistance * 2;
         tetrisElement->setScore(tetrisElement->getScore() + hardDropScore);
-        
-        // Place the piece and spawn the next one
+    
+        // Place the piece and reset drop distance trackers
         placeTetrimino();
         clearLines();
         spawnNewTetrimino();
+    
+        // Reset distances after placing
+        totalSoftDropDistance = 0;
+        hardDropDistance = 0;
         
-        // Check if the new piece placement is valid
         if (!isPositionValid(currentTetrimino)) {
             tetrisElement->gameOver = true;
         }
     }
+
 
 
 
@@ -1392,15 +1391,59 @@ private:
     std::chrono::milliseconds lockDelayCounter;
 
     // Fall speed variables
-    std::chrono::milliseconds initialFallSpeed;
-    std::chrono::milliseconds fallSpeed;
+    std::chrono::milliseconds initialFallSpeed; // No fallSpeed in game state now
     std::chrono::milliseconds fallCounter;
 
-    // Adjust fall speed based on score
-    void adjustFallSpeed() {
-        int minSpeed = 200; // Minimum fall speed (200 ms)
-        int speedDecrease = tetrisElement->getLevel() * 50; // Use getter for level
-        fallSpeed = std::max(initialFallSpeed - std::chrono::milliseconds(speedDecrease), std::chrono::milliseconds(minSpeed));
+    int totalSoftDropDistance = 0;  // Tracks the number of rows dropped for soft drops
+    int hardDropDistance = 0;       // Tracks the number of rows dropped for hard drops
+
+
+    // Function to adjust the fall speed based on the current level
+    //void adjustFallSpeed() {
+    //    int minSpeed = 200; // Minimum fall speed (200 ms)
+    //    int speedDecrease = tetrisElement->getLevel() * 50; // Decrease fall time by 50ms per level
+    //    fallSpeed = std::max(initialFallSpeed - std::chrono::milliseconds(speedDecrease), std::chrono::milliseconds(minSpeed));
+    //}
+
+    // Function to dynamically calculate fall speed based on the current level
+    std::chrono::milliseconds getFallSpeed() {
+        // Define the fall speeds in milliseconds based on levels (simulating classic Tetris)
+        const std::array<int, 30> fallSpeeds = {
+            800, // Level 0: 800ms per row drop
+            720, // Level 1
+            630, // Level 2
+            550, // Level 3
+            470, // Level 4
+            380, // Level 5
+            300, // Level 6
+            220, // Level 7
+            130, // Level 8
+            100, // Level 9
+            80,  // Level 10
+            80,  // Level 11
+            80,  // Level 12
+            80,  // Level 13
+            70,  // Level 14
+            70,  // Level 15
+            70,  // Level 16
+            50,  // Level 17
+            50,  // Level 18
+            50,  // Level 19
+            30,  // Level 20
+            30,  // Level 21
+            30,  // Level 22
+            20,  // Level 23
+            20,  // Level 24
+            20,  // Level 25
+            20,  // Level 26
+            20,  // Level 27
+            20,  // Level 28
+            16   // Level 29 and above (maximum speed, 16ms per row)
+        };
+    
+        // If the current level is 29 or higher, return the max speed (Level 29 speed)
+        int level = std::min(tetrisElement->getLevel(), static_cast<int>(fallSpeeds.size() - 1));
+        return std::chrono::milliseconds(fallSpeeds[level]);
     }
 
 
@@ -1414,15 +1457,16 @@ private:
             currentTetrimino.y -= dy;
         } else {
             success = true;
-            
-            // Award points for soft drop
+    
             if (dy > 0) {
-                tetrisElement->setScore(tetrisElement->getScore() + 1); // Typically 1 point per soft drop
+                // Accumulate points for soft drops (1 point per row)
+                totalSoftDropDistance += dy;
             }
         }
         
         return success;
     }
+
 
     
     void rotate() {
@@ -1523,9 +1567,24 @@ private:
                 }
             }
         }
-        hasSwapped = false; // Reset the swap flag after placing a Tetrimino
-    }
     
+        // Award points for soft drops (apply accumulated points)
+        if (totalSoftDropDistance > 0) {
+            int softDropScore = totalSoftDropDistance * 1;  // 1 point per row for soft drops
+            tetrisElement->setScore(tetrisElement->getScore() + softDropScore);
+        }
+    
+        // Reset drop distance trackers after placement
+        totalSoftDropDistance = 0;
+        hardDropDistance = 0;
+    
+        // Reset the swap flag after placing a Tetrimino
+        hasSwapped = false;
+    }
+
+
+    
+    // Modify the clearLines function to handle scoring and leveling up
     void clearLines() {
         int linesClearedInThisTurn = 0;
         int totalYPosition = 0;  // To calculate average Y-position for cleared lines
@@ -1568,23 +1627,37 @@ private:
                 }
             }
         }
-    
         
+
         if (linesClearedInThisTurn > 0) {
-            // Set the appropriate text based on the number of lines cleared
+            // Update score based on the number of lines cleared
+            int scoreMultiplier = 0;
+            switch (linesClearedInThisTurn) {
+                case 1: scoreMultiplier = 100; break;
+                case 2: scoreMultiplier = 300; break;
+                case 3: scoreMultiplier = 500; break;
+                case 4: scoreMultiplier = 800; break;
+            }
+            int newScore = scoreMultiplier * tetrisElement->getLevel();
+            tetrisElement->setScore(tetrisElement->getScore() + newScore);
+
+            // Increment lines cleared and check for level up
+            linesClearedForLevelUp += linesClearedInThisTurn;
+            if (linesClearedForLevelUp >= LINES_PER_LEVEL) {
+                linesClearedForLevelUp -= LINES_PER_LEVEL;  // Reset lines for next level
+                tetrisElement->setLevel(tetrisElement->getLevel() + 1);  // Increase level
+                //adjustFallSpeed();  // Adjust fall speed for the new level
+            }
+
+            // Show cleared lines text (Single, Double, Triple, Tetris)
             switch (linesClearedInThisTurn) {
                 case 1: tetrisElement->linesClearedText = "Single"; break;
                 case 2: tetrisElement->linesClearedText = "Double"; break;
                 case 3: tetrisElement->linesClearedText = "Triple"; break;
                 case 4: tetrisElement->linesClearedText = "Tetris"; break;
             }
-    
-            // Center the text vertically based on cleared lines
-            tetrisElement->clearedLinesYPosition = totalYPosition / linesClearedInThisTurn;
-    
-            // Start displaying the text with fade-in/out effect
             tetrisElement->showText = true;
-            tetrisElement->fadeAlpha = 0.0f;  // Start fully transparent
+            tetrisElement->fadeAlpha = 0.0f;  // Start fade animation
             tetrisElement->textStartTime = std::chrono::system_clock::now();
         }
     }
