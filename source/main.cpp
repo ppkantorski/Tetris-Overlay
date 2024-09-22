@@ -514,8 +514,8 @@ private:
     
     // Helper function to draw a single Tetrimino (handles both ghost and normal rendering)
     void drawSingleTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tet, int offsetX, int offsetY, bool isGhost) {
-        static tsl::Color color(0);
-        static tsl::Color innerColor(0);
+        tsl::Color color(0);
+        tsl::Color innerColor(0);
         int rotatedIndex;
         int x, y;
         for (int i = 0; i < 4; ++i) {
