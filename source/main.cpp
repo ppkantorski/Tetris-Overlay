@@ -37,9 +37,20 @@
 #include <vector>
 #include <ctime>
 #include <chrono>
-
+#include <random>
 
 bool isGameOver = false;
+
+
+struct Particle {
+    float x, y;      // Position
+    float vx, vy;    // Velocity
+    float life;      // Lifespan
+    float alpha;     // Transparency (fades out)
+};
+
+std::vector<Particle> particles;
+
 
 // Define the Tetrimino shapes
 const std::array<std::array<int, 16>, 7> tetriminoShapes = {{
@@ -249,6 +260,38 @@ public:
                 }
             }
         }
+
+        // Update and draw particles
+        for (auto it = particles.begin(); it != particles.end();) {
+            it->x += it->vx;
+            it->y += it->vy;
+        
+            // Reduce the alpha value for smooth fade-out
+            it->alpha -= 0.04f;
+            it->life -= 0.02f;
+        
+            // Draw particle if still alive and visible
+            if (it->life > 0 && it->alpha > 0) {
+                // Calculate particle position relative to board
+                int particleDrawX = offsetX + static_cast<int>(it->x);
+                int particleDrawY = offsetY + static_cast<int>(it->y);
+        
+                // Generate a random color for each particle in RGB4444 format
+                tsl::Color particleColor = tsl::Color({
+                    static_cast<u8>(rand() % 16),  // Random Red component (4 bits, 0x0 to 0xF)
+                    static_cast<u8>(rand() % 16),  // Random Green component (4 bits, 0x0 to 0xF)
+                    static_cast<u8>(rand() % 16),  // Random Blue component (4 bits, 0x0 to 0xF)
+                    static_cast<u8>(it->alpha * 15)  // Alpha component (4 bits, scaled to 0x0 to 0xF)
+                });
+        
+                renderer->drawRect(particleDrawX, particleDrawY, 4, 4, particleColor);
+                ++it;
+            } else {
+                it = particles.erase(it);
+            }
+        }
+        
+
 
         // Draw the stored Tetrimino
         drawStoredTetrimino(renderer, offsetX - 61, offsetY); // Adjust the position to fit on the left side
@@ -1318,10 +1361,10 @@ private:
         }
         hasSwapped = false; // Reset the swap flag after placing a Tetrimino
     }
-
+    
     void clearLines() {
         int linesClearedInThisTurn = 0;
-    
+        
         for (int i = 0; i < BOARD_HEIGHT; ++i) {
             bool fullLine = true;
             for (int j = 0; j < BOARD_WIDTH; ++j) {
@@ -1333,6 +1376,22 @@ private:
     
             if (fullLine) {
                 linesClearedInThisTurn++;
+    
+                // Create more dynamic particles with higher velocity and shorter lifespan
+                for (int x = 0; x < BOARD_WIDTH; ++x) {
+                    for (int p = 0; p < 10; ++p) {  // 10 particles per block
+                        particles.push_back(Particle{
+                            x * _w + _w / 2,  // X position (center of block)
+                            i * _h + _h / 2,  // Y position (center of block)
+                            (rand() % 100 / 50.0f - 1.0f) * 8, // Random X velocity (faster)
+                            (rand() % 100 / 50.0f - 1.0f) * 8, // Random Y velocity (faster)
+                            0.5f,  // Shorter lifespan
+                            1.0f   // Full opacity
+                        });
+                    }
+                }
+    
+                // Shift the rows and clear the top row as before
                 for (int y = i; y > 0; --y) {
                     for (int x = 0; x < BOARD_WIDTH; ++x) {
                         board[y][x] = board[y - 1][x];
@@ -1344,9 +1403,11 @@ private:
             }
         }
     
+    
         // Update score based on the number of lines cleared
         int currentLevel = tetrisElement->getLevel();
         int scoreIncrement = 0;
+    
         switch (linesClearedInThisTurn) {
             case 1: // Single
                 scoreIncrement = 40 * (currentLevel + 1);
@@ -1366,18 +1427,19 @@ private:
             tetrisElement->setScore(tetrisElement->getScore() + scoreIncrement);
         }
     
-        // Increment lines cleared and check if the level should increase
+        // Increment lines cleared and adjust level if necessary
         if (linesClearedInThisTurn > 0) {
             int totalLinesCleared = tetrisElement->getLinesCleared() + linesClearedInThisTurn;
             tetrisElement->setLinesCleared(totalLinesCleared);
     
-            // Check if the level should increase
+            // Check if level should be increased
             if (totalLinesCleared / 10 > tetrisElement->getLevel() - 1) {
                 tetrisElement->setLevel(tetrisElement->getLevel() + 1);
-                adjustFallSpeed();
+                adjustFallSpeed();  // Adjust the speed of falling blocks with level
             }
         }
     }
+    
 
     void spawnNewTetrimino() {
         currentTetrimino = Tetrimino(nextTetrimino.type);
