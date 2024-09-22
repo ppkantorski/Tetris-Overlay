@@ -195,23 +195,25 @@ bool isPositionValid(const Tetrimino& tet, const std::array<std::array<int, BOAR
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
             int rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
+            
             if (tetriminoShapes[tet.type][rotatedIndex] != 0) {
                 int x = tet.x + j;
                 int y = tet.y + i;
 
-                // Check if the position is within the board bounds
+                // Ensure x is within board width and y is within board height
                 if (x < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT) {
-                    return false;
+                    return false; // Out of horizontal bounds or below the board
                 }
-                // Check if the space is occupied
+                // Check if the block is within a valid area of the board (y >= 0) and not occupied
                 if (y >= 0 && board[y][x] != 0) {
-                    return false;
+                    return false; // The space is occupied by another block
                 }
             }
         }
     }
-    return true;
+    return true; // Valid position
 }
+
 
 
 // Helper function to calculate where the Tetrimino will land if hard dropped
@@ -369,7 +371,7 @@ public:
             std::chrono::duration<float, std::milli> elapsedTime = currentTime - textStartTime;
         
             // Define total duration of the fade effect
-            float fadeDuration = 1500.0f;  // Total time in milliseconds (2 seconds)
+            float fadeDuration = 2000.0f;  // Total time in milliseconds (2 seconds)
             float fadeAlpha = 0.0f;
         
             // Map the elapsed time to a sine wave for smooth fade-in and fade-out
@@ -1075,7 +1077,7 @@ public:
         totalSoftDropDistance = 0;
         hardDropDistance = 0;
         
-        if (!isPositionValid(currentTetrimino)) {
+        if (!isPositionValid(currentTetrimino, board)) {
             tetrisElement->gameOver = true;
         }
     }
@@ -1452,7 +1454,7 @@ private:
         currentTetrimino.x += dx;
         currentTetrimino.y += dy;
         
-        if (!isPositionValid(currentTetrimino)) {
+        if (!isPositionValid(currentTetrimino, board)) {
             currentTetrimino.x -= dx;
             currentTetrimino.y -= dy;
         } else {
@@ -1503,7 +1505,7 @@ private:
             currentTetrimino.y = previousY + kick.second;
             
             // Check if the new position is valid
-            if (isPositionValid(currentTetrimino)) {
+            if (isPositionValid(currentTetrimino, board)) {
                 // If valid, rotation is successful
                 return;
             }
@@ -1535,26 +1537,29 @@ private:
         return x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT;
     }
     
-    bool isPositionValid(const Tetrimino& tet) {
+    bool isPositionValid(const Tetrimino& tet, const std::array<std::array<int, BOARD_WIDTH>, BOARD_HEIGHT>& board) {
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
                 int rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
+                
                 if (tetriminoShapes[tet.type][rotatedIndex] != 0) {
                     int x = tet.x + j;
                     int y = tet.y + i;
     
-                    // Allow pieces to be slightly above the grid (y < 0)
+                    // Ensure x is within board width and y is within board height
                     if (x < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT) {
-                        return false; // Invalid if out of horizontal bounds or below the bottom
+                        return false; // Out of horizontal bounds or below the board
                     }
+                    // Check if the block is within a valid area of the board (y >= 0) and not occupied
                     if (y >= 0 && board[y][x] != 0) {
-                        return false; // Check if the space is occupied (only if it's within the grid)
+                        return false; // The space is occupied by another block
                     }
                 }
             }
         }
-        return true;
+        return true; // Valid position
     }
+
 
 
     void placeTetrimino() {
@@ -1562,8 +1567,15 @@ private:
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
                 int rotatedIndex = getRotatedIndex(currentTetrimino.type, i, j, currentTetrimino.rotation);
+                
                 if (tetriminoShapes[currentTetrimino.type][rotatedIndex] != 0) {
-                    board[currentTetrimino.y + i][currentTetrimino.x + j] = currentTetrimino.type + 1; // Store color index
+                    int x = currentTetrimino.x + j;
+                    int y = currentTetrimino.y + i;
+    
+                    // Only place the block if y is within the board (y >= 0)
+                    if (y >= 0) {
+                        board[y][x] = currentTetrimino.type + 1; // Place the block
+                    }
                 }
             }
         }
@@ -1667,21 +1679,22 @@ private:
         }
     }
     
-    
-    
-    
 
     void spawnNewTetrimino() {
         currentTetrimino = Tetrimino(nextTetrimino.type);
         currentTetrimino.x = BOARD_WIDTH / 2 - 2;
-        currentTetrimino.y = 0;
-        // Check if the new tetrimino is in a valid position
-        if (!isPositionValid(currentTetrimino)) {
-            tetrisElement->gameOver = true; // Set game over
+        currentTetrimino.y = 0; // Start from the top
+        
+        // Check if the new Tetrimino is in a valid position
+        if (!isPositionValid(currentTetrimino, board)) {
+            // Game over: the new Tetrimino can't be placed
+            tetrisElement->gameOver = true;
         } else {
-            nextTetrimino = Tetrimino(rand() % 7);
+            nextTetrimino = Tetrimino(rand() % 7); // Prepare the next piece
         }
     }
+
+
 };
 
 class Overlay : public tsl::Overlay {
