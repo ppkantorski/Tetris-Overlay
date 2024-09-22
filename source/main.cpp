@@ -315,7 +315,7 @@ public:
         // Update and draw particles
         tsl::Color particleColor(0);
         int particleDrawX, particleDrawY;
-        
+
         // Update and draw particles (only handle the drawing part here)
         for (const auto& particle : particles) {
             if (particle.life > 0 && particle.alpha > 0) {
@@ -1708,7 +1708,21 @@ private:
     void spawnNewTetrimino() {
         currentTetrimino = Tetrimino(nextTetrimino.type);
         currentTetrimino.x = BOARD_WIDTH / 2 - 2;
-        currentTetrimino.y = 0; // Start from the top
+    
+        // Calculate the topmost row with a block to adjust the starting Y position
+        int topmostRow = 4; // Start with the assumption that the piece may be 4 rows high
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                int rotatedIndex = getRotatedIndex(currentTetrimino.type, i, j, currentTetrimino.rotation);
+                if (tetriminoShapes[currentTetrimino.type][rotatedIndex] != 0) {
+                    topmostRow = std::min(topmostRow, i); // Find the topmost row with a block
+                    break; // No need to continue checking this row
+                }
+            }
+        }
+    
+        // Set the initial Y position, adjusted for the topmost block
+        currentTetrimino.y = -topmostRow; // Allow the piece to start partially off-screen if necessary
     
         // Check if the new Tetrimino is in a valid position
         if (!isPositionValid(currentTetrimino, board)) {
@@ -1718,6 +1732,7 @@ private:
             nextTetrimino = Tetrimino(rand() % 7); // Prepare the next piece
         }
     }
+
 
 
 
