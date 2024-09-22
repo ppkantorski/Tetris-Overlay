@@ -315,34 +315,26 @@ public:
         // Update and draw particles
         tsl::Color particleColor(0);
         int particleDrawX, particleDrawY;
-        for (auto it = particles.begin(); it != particles.end();) {
-            it->x += it->vx;
-            it->y += it->vy;
         
-            // Reduce the alpha value for smooth fade-out
-            it->alpha -= 0.04f;
-            it->life -= 0.02f;
-        
-            // Draw particle if still alive and visible
-            if (it->life > 0 && it->alpha > 0) {
-                // Calculate particle position relative to board
-                particleDrawX = offsetX + static_cast<int>(it->x);
-                particleDrawY = offsetY + static_cast<int>(it->y);
+        // Update and draw particles (only handle the drawing part here)
+        for (const auto& particle : particles) {
+            if (particle.life > 0 && particle.alpha > 0) {
+                // Calculate particle position relative to the board
+                particleDrawX = offsetX + static_cast<int>(particle.x);
+                particleDrawY = offsetY + static_cast<int>(particle.y);
         
                 // Generate a random color for each particle in RGB4444 format
                 particleColor = tsl::Color({
                     static_cast<u8>(rand() % 16),  // Random Red component (4 bits, 0x0 to 0xF)
                     static_cast<u8>(rand() % 16),  // Random Green component (4 bits, 0x0 to 0xF)
                     static_cast<u8>(rand() % 16),  // Random Blue component (4 bits, 0x0 to 0xF)
-                    static_cast<u8>(it->alpha * 15)  // Alpha component (4 bits, scaled to 0x0 to 0xF)
+                    static_cast<u8>(particle.alpha * 15)  // Alpha component (4 bits, scaled to 0x0 to 0xF)
                 });
         
                 renderer->drawRect(particleDrawX, particleDrawY, 4, 4, particleColor);
-                ++it;
-            } else {
-                it = particles.erase(it);
             }
         }
+
 
 
         // Draw the stored Tetrimino
@@ -991,6 +983,22 @@ public:
         return rootFrame;
     }
 
+    void updateParticles() {
+        for (auto it = particles.begin(); it != particles.end();) {
+            it->x += it->vx;
+            it->y += it->vy;
+            it->alpha -= 0.04f;  // Fade out the particle
+            it->life -= 0.02f;   // Decrease the lifespan
+    
+            // If the particle is still alive and visible, keep it
+            if (it->life > 0 && it->alpha > 0) {
+                ++it;
+            } else {
+                // Remove the dead particle
+                it = particles.erase(it);
+            }
+        }
+    }
 
 
     virtual void update() override {
@@ -1017,6 +1025,9 @@ public:
                 }
                 fallCounter = std::chrono::milliseconds(0); // Reset fall counter
             }
+
+            // Update the particles
+            updateParticles();  // Add this line to update particle positions
 
             timeSinceLastFrame = currentTime;
         }
