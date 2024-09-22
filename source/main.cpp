@@ -1586,9 +1586,9 @@ private:
     
     // Modify the clearLines function to handle scoring and leveling up
     void clearLines() {
-        int linesClearedInThisTurn = 0;
-        int totalYPosition = 0;  // To calculate average Y-position for cleared lines
-    
+        int linesClearedInThisTurn = 0;  // Track how many lines were cleared in this turn
+        int totalYPosition = 0;  // To calculate the average Y-position for displaying cleared lines text
+        
         for (int i = 0; i < BOARD_HEIGHT; ++i) {
             bool fullLine = true;
             for (int j = 0; j < BOARD_WIDTH; ++j) {
@@ -1597,40 +1597,45 @@ private:
                     break;
                 }
             }
-    
+            
             if (fullLine) {
-                linesClearedInThisTurn++;
-                totalYPosition += i * _h;  // Sum Y-positions for centering text
+                linesClearedInThisTurn++;  // Count how many lines are cleared
+                totalYPosition += i * _h;  // Track Y-position for text rendering
     
-                // Create particles as before
+                // Remove the full line and create particles for line clear effect
                 for (int x = 0; x < BOARD_WIDTH; ++x) {
-                    for (int p = 0; p < 10; ++p) {  // 10 particles per block
+                    for (int p = 0; p < 10; ++p) {  // Generate particles for each block
                         particles.push_back(Particle{
-                            static_cast<float>(x * _w + _w / 2),  // X position (center of block)
-                            static_cast<float>(i * _h + _h / 2),  // Y position (center of block)
-                            (rand() % 100 / 50.0f - 1.0f) * 8,    // Random X velocity
-                            (rand() % 100 / 50.0f - 1.0f) * 8,    // Random Y velocity
-                            0.5f,  // Shorter lifespan
-                            1.0f   // Full opacity
+                            static_cast<float>(x * _w + _w / 2),
+                            static_cast<float>(i * _h + _h / 2),
+                            (rand() % 100 / 50.0f - 1.0f) * 8,
+                            (rand() % 100 / 50.0f - 1.0f) * 8,
+                            0.5f,
+                            1.0f
                         });
                     }
                 }
     
-                // Shift rows logic...
+                // Shift rows down after clearing the full line
                 for (int y = i; y > 0; --y) {
                     for (int x = 0; x < BOARD_WIDTH; ++x) {
                         board[y][x] = board[y - 1][x];
                     }
                 }
+    
+                // Clear the top row
                 for (int x = 0; x < BOARD_WIDTH; ++x) {
                     board[0][x] = 0;
                 }
             }
         }
-        
-
+    
+        // If lines were cleared, update the score and level, and show feedback text
         if (linesClearedInThisTurn > 0) {
-            // Update score based on the number of lines cleared
+            // Update the total lines cleared
+            tetrisElement->setLinesCleared(tetrisElement->getLinesCleared() + linesClearedInThisTurn);
+    
+            // Update score based on how many lines were cleared
             int scoreMultiplier = 0;
             switch (linesClearedInThisTurn) {
                 case 1: scoreMultiplier = 100; break;
@@ -1640,27 +1645,28 @@ private:
             }
             int newScore = scoreMultiplier * tetrisElement->getLevel();
             tetrisElement->setScore(tetrisElement->getScore() + newScore);
-
-            // Increment lines cleared and check for level up
+    
+            // Level up after clearing a certain number of lines
             linesClearedForLevelUp += linesClearedInThisTurn;
             if (linesClearedForLevelUp >= LINES_PER_LEVEL) {
-                linesClearedForLevelUp -= LINES_PER_LEVEL;  // Reset lines for next level
-                tetrisElement->setLevel(tetrisElement->getLevel() + 1);  // Increase level
-                //adjustFallSpeed();  // Adjust fall speed for the new level
+                linesClearedForLevelUp -= LINES_PER_LEVEL;  // Reset the count for the next level
+                tetrisElement->setLevel(tetrisElement->getLevel() + 1);  // Increase the level
             }
-
-            // Show cleared lines text (Single, Double, Triple, Tetris)
+    
+            // Show feedback text based on the number of lines cleared
             switch (linesClearedInThisTurn) {
                 case 1: tetrisElement->linesClearedText = "Single"; break;
                 case 2: tetrisElement->linesClearedText = "Double"; break;
                 case 3: tetrisElement->linesClearedText = "Triple"; break;
                 case 4: tetrisElement->linesClearedText = "Tetris"; break;
             }
+    
             tetrisElement->showText = true;
             tetrisElement->fadeAlpha = 0.0f;  // Start fade animation
-            tetrisElement->textStartTime = std::chrono::system_clock::now();
+            tetrisElement->textStartTime = std::chrono::system_clock::now();  // Track animation start time
         }
     }
+    
     
     
     
