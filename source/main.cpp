@@ -262,7 +262,7 @@ public:
     float fadeAlpha = 0.0f;        // Alpha value for fade-in/fade-out
     bool showText = false;         // Flag to control when to show the text
     int clearedLinesYPosition = 0; // Y-position of cleared lines to center text
-    std::chrono::time_point<std::chrono::system_clock> textStartTime;
+    std::chrono::time_point<std::chrono::steady_clock> textStartTime;
 
     TetrisElement(u16 w, u16 h, std::array<std::array<int, BOARD_WIDTH>, BOARD_HEIGHT> *board, Tetrimino *current, Tetrimino *next, Tetrimino *stored)
         : board(board), currentTetrimino(current), nextTetrimino(next), storedTetrimino(stored), _w(w), _h(h) {}
@@ -331,6 +331,14 @@ public:
             }
         }
 
+        score.str(std::string());
+        score << "Score\n" << getScore();
+        renderer->drawString(score.str().c_str(), false, 64, 124, 20, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        
+        highScore.str(std::string());
+        highScore << "High Score\n" << maxHighScore;
+        renderer->drawString(highScore.str().c_str(), false, 268, 124, 20, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+
         // Update and draw particles
         //tsl::Color particleColor(0);
         //int particleDrawX, particleDrawY;
@@ -387,77 +395,80 @@ public:
 
         // Draw the lines-cleared text with smooth sine wave-based color effect for each character when the text is "Tetris"
         if (showText) {
-            // Use floating-point precision for elapsed time in milliseconds
-            auto currentTime = std::chrono::system_clock::now();
+            auto currentTime = std::chrono::steady_clock::now();
             std::chrono::duration<float, std::milli> elapsedTime = currentTime - textStartTime;
         
-            // Define total duration of the fade effect
-            float fadeDuration = 2000.0f;  // Total time in milliseconds (2 seconds)
-            //float fadeAlpha = 0.0f;
+            // Define total duration for scrolling from right to left
+            float scrollDuration = (linesClearedText == "Tetris") ? 2000.0f : 1500.0f;  // 2 seconds to scroll from right to left
         
-            // Map the elapsed time to a sine wave for smooth fade-in and fade-out
-            if (elapsedTime.count() < fadeDuration) {
-                // Calculate the progress as a value between 0 and 1
-                //float progress = elapsedTime.count() / fadeDuration;
+            // Calculate board dimensions
+            int boardWidthInPixels = BOARD_WIDTH * _w;
+            int boardHeightInPixels = BOARD_HEIGHT * _h;
+            int offsetX = (this->getWidth() - boardWidthInPixels) / 2;  // Horizontal offset to center the board
+            int offsetY = (this->getHeight() - boardHeightInPixels) / 2; // Vertical offset to center the board
         
-                // Use sine wave function: sin(π * progress) for a smooth transition
-                //fadeAlpha = sinf(M_PI * progress);  // This smoothly maps alpha from 0 to 1 and back to 0
-            } else {
-                // Hide the text after the animation completes
-                showText = false;
-            }
+            // Font size and padding
+            int fontSize = (linesClearedText == "Tetris") ? 30 : 24;
+            int textWidth = renderer->calculateStringWidth(linesClearedText.c_str(), fontSize);
+            int textY = offsetY + (boardHeightInPixels / 2);  // Center vertically on the board
         
-            // Ensure fadeAlpha is clamped between 0 and 1
-            //fadeAlpha = std::min(std::max(fadeAlpha, 0.0f), 1.0f);  // Clamp fadeAlpha between 0 and 1
-        
-            // Scale fadeAlpha to the RGBA4444 range (0 to 15)
-            //u8 alphaValue = static_cast<u8>(fadeAlpha * 15);  // Scale alpha smoothly from 0 to 15
-        
-            // Calculate horizontal center of the text
+            // Calculate the X position of the text based on elapsed time
             int textX;
         
-            // Calculate vertical center of the board
-            int boardHeightInPixels = BOARD_HEIGHT * _h;  // Height of the board in pixels
-            int boardCenterY = (this->getHeight() - boardHeightInPixels) / 2 + (boardHeightInPixels / 2);  // Vertical center of the board
+            // Scroll the text from right to left over the 2 seconds
+            if (elapsedTime.count() < scrollDuration) {
+                float scrollProgress = elapsedTime.count() / scrollDuration;
+                // Start the text from the right edge of the board and scroll left
+                textX = offsetX + boardWidthInPixels - scrollProgress * (textWidth + boardWidthInPixels);
+            } else {
+                // Hide the text after the total duration
+                showText = false;
+                return;
+            }
         
-            // Check if the text is "Tetris" to apply color transition
+            // Enable scissoring to clip the text within the board's bounds
+            renderer->enableScissoring(offsetX, offsetY, boardWidthInPixels, boardHeightInPixels);
+        
+            // Draw the text with color effects for "Tetris"
             if (linesClearedText == "Tetris") {
-                textX = (this->getWidth() - renderer->calculateStringWidth(linesClearedText.c_str(), 30)) / 2;
-                // Color transition settings
                 auto currentTimeCount = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
-                static auto dynamicLogoRGB1 = tsl::hexToRGB444Floats("#6929ff");  // Starting color
-                static auto dynamicLogoRGB2 = tsl::hexToRGB444Floats("#fff429");  // Ending color
-                float countOffset = 0.0f;  // Offset for each character
-                
+                static auto dynamicLogoRGB1 = tsl::hexToRGB444Floats("#6929ff");
+                static auto dynamicLogoRGB2 = tsl::hexToRGB444Floats("#fff429");
+                float countOffset = 0.0f;
+        
                 tsl::Color highlightColor(0);
-                float counter, progress;
-                // Loop through each character and apply color effect
+                float counter, transitionProgress;
+        
                 for (char letter : linesClearedText) {
                     counter = (2 * M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
-                    progress = std::sin(3.0 * (counter - (2.0 * M_PI / 3.0)));  // Color transition based on sine wave
-                    
+                    transitionProgress = std::sin(3.0 * (counter - (2.0 * M_PI / 3.0)));
+        
                     highlightColor = {
-                        static_cast<u8>((std::get<0>(dynamicLogoRGB2) - std::get<0>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<0>(dynamicLogoRGB1)),
-                        static_cast<u8>((std::get<1>(dynamicLogoRGB2) - std::get<1>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<1>(dynamicLogoRGB1)),
-                        static_cast<u8>((std::get<2>(dynamicLogoRGB2) - std::get<2>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<2>(dynamicLogoRGB1)),
-                        0xF  // Use the fadeAlpha for the transparency
+                        static_cast<u8>((std::get<0>(dynamicLogoRGB2) - std::get<0>(dynamicLogoRGB1)) * (transitionProgress + 1.0) / 2.0 + std::get<0>(dynamicLogoRGB1)),
+                        static_cast<u8>((std::get<1>(dynamicLogoRGB2) - std::get<1>(dynamicLogoRGB1)) * (transitionProgress + 1.0) / 2.0 + std::get<1>(dynamicLogoRGB1)),
+                        static_cast<u8>((std::get<2>(dynamicLogoRGB2) - std::get<2>(dynamicLogoRGB1)) * (transitionProgress + 1.0) / 2.0 + std::get<2>(dynamicLogoRGB1)),
+                        0xF  // Full opacity for the text
                     };
         
-                    // Draw each character individually
-                    std::string charStr(1, letter);  // Convert char to string
-                    renderer->drawString(charStr.c_str(), false, textX, boardCenterY, 30, highlightColor);
+                    std::string charStr(1, letter);
+                    int charWidth = renderer->calculateStringWidth(charStr.c_str(), fontSize);
         
-                    // Move the x position for the next character
-                    textX += renderer->calculateStringWidth(charStr.c_str(), 30);
-                    countOffset -= 0.2f;  // Slightly delay the color effect for each letter
+                    renderer->drawString(charStr.c_str(), false, textX, textY, fontSize, highlightColor);
+                    textX += charWidth;
+                    countOffset -= 0.2f;
                 }
             } else {
-                textX = (this->getWidth() - renderer->calculateStringWidth(linesClearedText.c_str(), 24)) / 2;
-                // Draw the text normally for any other string
-                tsl::Color textColor(0xF, 0xF, 0xF, 0xF);  // Use fadeAlpha to adjust the transparency
-                renderer->drawString(linesClearedText.c_str(), false, textX, boardCenterY, 24, textColor);
+                // Draw non-Tetris text in plain white
+                tsl::Color textColor(0xF, 0xF, 0xF, 0xF);  // White text
+                renderer->drawString(linesClearedText.c_str(), false, textX, textY, fontSize, textColor);
             }
+        
+            // Disable scissoring after drawing
+            renderer->disableScissoring();
         }
+        
+        
+
 
         // Draw score and status text
         if (gameOver || paused) {
@@ -488,15 +499,6 @@ public:
                 renderer->drawString("Paused", false, centerX - textWidth / 2, centerY, 24, greenColor);
             }
         }
-
-
-        score.str(std::string());
-        score << "Score\n" << getScore();
-        renderer->drawString(score.str().c_str(), false, 64, 124, 20, tsl::Color({0xF, 0xF, 0xF, 0xF}));
-        
-        highScore.str(std::string());
-        highScore << "High Score\n" << maxHighScore;
-        renderer->drawString(highScore.str().c_str(), false, 268, 124, 20, tsl::Color({0xF, 0xF, 0xF, 0xF}));
         
     }
 
@@ -1039,7 +1041,7 @@ public:
     const int LINES_PER_LEVEL = 10;  // Increment level every 10 lines
 
     // Variables to track time of last rotation or movement
-    std::chrono::time_point<std::chrono::system_clock> lastRotationOrMoveTime;
+    std::chrono::time_point<std::chrono::steady_clock> lastRotationOrMoveTime;
     const std::chrono::milliseconds lockDelayExtension = std::chrono::milliseconds(500); // 500ms extension
 
     TetrisGui() : board(), currentTetrimino(rand() % 7), nextTetrimino(rand() % 7) {
@@ -1054,7 +1056,7 @@ public:
         initialFallSpeed = std::chrono::milliseconds(500);
         fallCounter = std::chrono::milliseconds(0);
 
-        lastRotationOrMoveTime = std::chrono::system_clock::now();  // Initialize with current time
+        lastRotationOrMoveTime = std::chrono::steady_clock::now();  // Initialize with current time
     }
 
     virtual tsl::elm::Element* createUI() override {
@@ -1062,7 +1064,7 @@ public:
         auto rootFrame = new CustomOverlayFrame("Tetris", APP_VERSION);
         tetrisElement = new TetrisElement(_w, _h, &board, &currentTetrimino, &nextTetrimino, &storedTetrimino); // Pass storedTetrimino
         rootFrame->setContent(tetrisElement);
-        timeSinceLastFrame = std::chrono::system_clock::now();
+        timeSinceLastFrame = std::chrono::steady_clock::now();
     
         loadGameState();
         return rootFrame;
@@ -1074,7 +1076,7 @@ public:
 
     virtual void update() override {
         if (!TetrisElement::paused && !tetrisElement->gameOver) {
-            auto currentTime = std::chrono::system_clock::now();
+            auto currentTime = std::chrono::steady_clock::now();
             auto elapsed = currentTime - timeSinceLastFrame;
 
             // Handle piece falling
@@ -1324,12 +1326,12 @@ public:
     const int ARR = 40;   // ARR interval in milliseconds
     
     // Variables to track key hold states and timing
-    std::chrono::time_point<std::chrono::system_clock> lastLeftMove, lastRightMove, lastDownMove;
+    std::chrono::time_point<std::chrono::steady_clock> lastLeftMove, lastRightMove, lastDownMove;
     bool leftHeld = false, rightHeld = false, downHeld = false;
     bool leftARR = false, rightARR = false, downARR = false;
     
     bool handleInput(u64 keysDown, u64 keysHeld, touchPosition touchInput, JoystickPosition leftJoyStick, JoystickPosition rightJoyStick) override {
-        auto currentTime = std::chrono::system_clock::now();
+        auto currentTime = std::chrono::steady_clock::now();
         bool moved = false;
     
         // Handle the rest of the input only if the game is not paused and not over
@@ -1491,7 +1493,7 @@ private:
     TetrisElement* tetrisElement;
     u16 _w;
     u16 _h;
-    std::chrono::time_point<std::chrono::system_clock> timeSinceLastFrame;
+    std::chrono::time_point<std::chrono::steady_clock> timeSinceLastFrame;
 
     // Lock delay variables
     std::chrono::milliseconds lockDelayTime;
@@ -1576,7 +1578,7 @@ private:
             } else if (dx != 0) {
                 // Reset lock delay if there was a horizontal movement
                 lockDelayCounter = std::chrono::milliseconds(0);
-                lastRotationOrMoveTime = std::chrono::system_clock::now();  // Update the last move time
+                lastRotationOrMoveTime = std::chrono::steady_clock::now();  // Update the last move time
             }
         }
 
@@ -1620,7 +1622,7 @@ private:
             if (isPositionValid(currentTetrimino, board)) {
                 // Reset lock delay to prevent immediate locking after rotation
                 lockDelayCounter = std::chrono::milliseconds(0);
-                lastRotationOrMoveTime = std::chrono::system_clock::now();
+                lastRotationOrMoveTime = std::chrono::steady_clock::now();
                 return;
             }
         }
@@ -1818,7 +1820,7 @@ private:
     
             tetrisElement->showText = true;
             tetrisElement->fadeAlpha = 0.0f;  // Start fade animation
-            tetrisElement->textStartTime = std::chrono::system_clock::now();  // Track animation start time
+            tetrisElement->textStartTime = std::chrono::steady_clock::now();  // Track animation start time
         }
     }
     
