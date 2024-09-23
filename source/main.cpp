@@ -1607,10 +1607,11 @@ private:
         currentTetrimino.rotation = (currentTetrimino.rotation + direction + 4) % 4;
     
         const auto& kicks = (currentTetrimino.type == 0) ? wallKicksI : wallKicksJLSTZ;
-    
+        
+        int kickIndex;
         // Try all the wall kick possibilities
         for (int i = 0; i < 5; ++i) {
-            int kickIndex = (direction > 0) ? previousRotation : currentTetrimino.rotation;
+            kickIndex = (direction > 0) ? previousRotation : currentTetrimino.rotation;
             const auto& kick = kicks[kickIndex][i];
     
             currentTetrimino.x = previousX + kick.first;
@@ -1661,14 +1662,16 @@ private:
         std::lock_guard<std::mutex> lock(boardMutex); // Lock the mutex for board access
         bool pieceAboveTop = false;  // Track if any part of the piece is above the top of the board
 
+        int rotatedIndex;
+        int x, y;
         // Place the Tetrimino on the board
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                int rotatedIndex = getRotatedIndex(currentTetrimino.type, i, j, currentTetrimino.rotation);
+                rotatedIndex = getRotatedIndex(currentTetrimino.type, i, j, currentTetrimino.rotation);
                 
                 if (tetriminoShapes[currentTetrimino.type][rotatedIndex] != 0) {
-                    int x = currentTetrimino.x + j;
-                    int y = currentTetrimino.y + i;
+                    x = currentTetrimino.x + j;
+                    y = currentTetrimino.y + i;
     
                     // If any part of the piece is above the top of the board (y < 0)
                     if (y < 0) {
@@ -1747,9 +1750,10 @@ private:
         
         int linesClearedInThisTurn = 0;
         int totalYPosition = 0;
-    
+        
+        bool fullLine;
         for (int i = 0; i < BOARD_HEIGHT; ++i) {
-            bool fullLine = true;
+            fullLine = true;
     
             for (int j = 0; j < BOARD_WIDTH; ++j) {
                 if (board[i][j] == 0) {
@@ -1822,12 +1826,14 @@ private:
     void spawnNewTetrimino() {
         currentTetrimino = Tetrimino(nextTetrimino.type);
         currentTetrimino.x = BOARD_WIDTH / 2 - 2;
-    
+        
+        int rotatedIndex;
+
         // Calculate the topmost row with a block to adjust the starting Y position
         int topmostRow = 4; // Start with the assumption that the piece may be 4 rows high
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                int rotatedIndex = getRotatedIndex(currentTetrimino.type, i, j, currentTetrimino.rotation);
+                rotatedIndex = getRotatedIndex(currentTetrimino.type, i, j, currentTetrimino.rotation);
                 if (tetriminoShapes[currentTetrimino.type][rotatedIndex] != 0) {
                     topmostRow = std::min(topmostRow, i); // Find the topmost row with a block
                     break; // No need to continue checking this row
