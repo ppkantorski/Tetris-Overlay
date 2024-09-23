@@ -200,31 +200,32 @@ bool isPositionValid(const Tetrimino& tet, const std::array<std::array<int, BOAR
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
             int rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
-            
-            // Only check if there's a block in the current cell
+
+            // Only check cells that contain a block
             if (tetriminoShapes[tet.type][rotatedIndex] != 0) {
                 int x = tet.x + j;
                 int y = tet.y + i;
 
-                // Ensure x is within board width and y is within valid bounds
+                // Check if x and y are within the bounds of the board
                 if (x < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT) {
-                    return false;  // Invalid position, out of bounds
+                    return false;  // Invalid if out of bounds
                 }
 
-                // If the block is above the top of the board, skip checking
+                // If the block is above the visible board, ignore it
                 if (y < 0) {
-                    continue;  // Skip rows above the visible board
+                    continue;  // Skip rows above the board
                 }
 
-                // Check if the space is occupied by another block
+                // Check if the block space is occupied
                 if (board[y][x] != 0) {
-                    return false;  // The space is occupied
+                    return false;  // Invalid if space is occupied
                 }
             }
         }
     }
     return true;  // Position is valid
 }
+
 
 
 
@@ -1010,6 +1011,11 @@ public:
                 ++it;
             }
         }
+
+        // Ensure particle count stays within bounds
+        if (particles.size() > MAX_PARTICLES) {
+            particles.erase(particles.begin(), particles.begin() + (particles.size() - MAX_PARTICLES));
+        }
     }
 
 
@@ -1496,6 +1502,7 @@ private:
 
 
     bool move(int dx, int dy) {
+        std::lock_guard<std::mutex> lock(boardMutex);  // Lock to prevent race conditions
         bool success = false;
         currentTetrimino.x += dx;
         currentTetrimino.y += dy;
@@ -1509,7 +1516,7 @@ private:
             if (dy > 0) {
                 // Accumulate points for soft drops (1 point per row)
                 totalSoftDropDistance += dy;
-            } else {
+            } else if (dx != 0) {
                 // Reset lock delay if there was a horizontal movement
                 lockDelayCounter = std::chrono::milliseconds(0);
                 lastRotationOrMoveTime = std::chrono::system_clock::now();  // Update the last move time
@@ -1593,8 +1600,9 @@ private:
 
 
     void placeTetrimino() {
+        std::lock_guard<std::mutex> lock(boardMutex); // Lock the mutex for board access
         bool pieceAboveTop = false;  // Track if any part of the piece is above the top of the board
-    
+
         // Place the Tetrimino on the board
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
@@ -1643,6 +1651,8 @@ private:
     
     // Modify the clearLines function to handle scoring and leveling up
     void clearLines() {
+        std::lock_guard<std::mutex> lock(boardMutex); // Lock the mutex while clearing lines
+
         int linesClearedInThisTurn = 0;  // Track how many lines were cleared in this turn
         int totalYPosition = 0;  // To calculate the average Y-position for displaying cleared lines text
         
