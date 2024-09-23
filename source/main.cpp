@@ -398,8 +398,11 @@ public:
             auto currentTime = std::chrono::steady_clock::now();
             std::chrono::duration<float, std::milli> elapsedTime = currentTime - textStartTime;
         
-            // Define total duration for scrolling from right to left
-            float scrollDuration = (linesClearedText == "Tetris") ? 2000.0f : 1500.0f;  // 2 seconds to scroll from right to left
+            // Define the durations for each phase
+            float scrollInDuration = 500.0f;  // 1 seconds to scroll in
+            float pauseDuration = 1000.0f;     // 1 second pause
+            float scrollOutDuration = 500.0f; // 1 seconds to scroll out
+            float totalDuration = scrollInDuration + pauseDuration + scrollOutDuration;
         
             // Calculate board dimensions
             int boardWidthInPixels = BOARD_WIDTH * _w;
@@ -407,30 +410,42 @@ public:
             int offsetX = (this->getWidth() - boardWidthInPixels) / 2;  // Horizontal offset to center the board
             int offsetY = (this->getHeight() - boardHeightInPixels) / 2; // Vertical offset to center the board
         
-            // Font size and padding
-            int fontSize = (linesClearedText == "Tetris") ? 30 : 24;
-            int textWidth = renderer->calculateStringWidth(linesClearedText.c_str(), fontSize);
-            int textY = offsetY + (boardHeightInPixels / 2);  // Center vertically on the board
-        
-            // Calculate the X position of the text based on elapsed time
-            int textX;
-        
-            // Scroll the text from right to left over the 2 seconds
-            if (elapsedTime.count() < scrollDuration) {
-                float scrollProgress = elapsedTime.count() / scrollDuration;
-                // Start the text from the right edge of the board and scroll left
-                textX = offsetX + boardWidthInPixels - scrollProgress * (textWidth + boardWidthInPixels);
-            } else {
-                // Hide the text after the total duration
-                showText = false;
-                return;
-            }
-        
-            // Enable scissoring to clip the text within the board's bounds
-            renderer->enableScissoring(offsetX, offsetY, boardWidthInPixels, boardHeightInPixels);
+
+            
+
+
+
         
             // Draw the text with color effects for "Tetris"
             if (linesClearedText == "Tetris") {
+                // Font size and padding
+                int fontSize = 24;  // Match font size used for "Lines" and "Level"
+                int textWidth = renderer->calculateStringWidth(linesClearedText.c_str(), fontSize) + 16;
+                int textY = offsetY + (boardHeightInPixels / 2);  // Center vertically on the board
+                
+                // Calculate the X position of the text based on the phase
+                int textX;
+                    
+                if (elapsedTime.count() < scrollInDuration) {
+                    // Phase 1: Slide the text from being hidden (under the left side of the gameboard) to fully visible on the left side
+                    float progress = elapsedTime.count() / scrollInDuration;
+                    textX = offsetX - (progress) * textWidth;  // Move left from hidden to fully visible
+                } else if (elapsedTime.count() < scrollInDuration + pauseDuration) {
+                    // Phase 2: Pause the text fully visible just off the left edge of the gameboard
+                    textX = offsetX - textWidth;  // Fully visible, just to the left of the gameboard
+                } else if (elapsedTime.count() < totalDuration) {
+                    // Phase 3: Slide the text back to the right, scissored by the left edge of the gameboard
+                    float progress = (elapsedTime.count() - scrollInDuration - pauseDuration) / scrollOutDuration;
+                    textX = offsetX - textWidth + progress * textWidth;  // Move right, getting scissored
+                } else {
+                    // End the animation after the total duration
+                    showText = false;
+                    return;
+                }
+            
+                // Enable scissoring to clip the text at the left edge of the gameboard
+                renderer->enableScissoring(0, offsetY, offsetX, boardHeightInPixels);
+
                 auto currentTimeCount = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
                 static auto dynamicLogoRGB1 = tsl::hexToRGB444Floats("#6929ff");
                 static auto dynamicLogoRGB2 = tsl::hexToRGB444Floats("#fff429");
@@ -458,6 +473,34 @@ public:
                     countOffset -= 0.2f;
                 }
             } else {
+                // Font size and padding
+                int fontSize = 20;  // Match font size used for "Lines" and "Level"
+                int textWidth = renderer->calculateStringWidth(linesClearedText.c_str(), fontSize) + 16;
+                int textY = offsetY + (boardHeightInPixels / 2);  // Center vertically on the board
+                
+                // Calculate the X position of the text based on the phase
+                int textX;
+                    
+                if (elapsedTime.count() < scrollInDuration) {
+                    // Phase 1: Slide the text from being hidden (under the left side of the gameboard) to fully visible on the left side
+                    float progress = elapsedTime.count() / scrollInDuration;
+                    textX = offsetX - (progress) * textWidth;  // Move left from hidden to fully visible
+                } else if (elapsedTime.count() < scrollInDuration + pauseDuration) {
+                    // Phase 2: Pause the text fully visible just off the left edge of the gameboard
+                    textX = offsetX - textWidth;  // Fully visible, just to the left of the gameboard
+                } else if (elapsedTime.count() < totalDuration) {
+                    // Phase 3: Slide the text back to the right, scissored by the left edge of the gameboard
+                    float progress = (elapsedTime.count() - scrollInDuration - pauseDuration) / scrollOutDuration;
+                    textX = offsetX - textWidth + progress * textWidth;  // Move right, getting scissored
+                } else {
+                    // End the animation after the total duration
+                    showText = false;
+                    return;
+                }
+                
+                // Enable scissoring to clip the text at the left edge of the gameboard
+                renderer->enableScissoring(0, offsetY, offsetX, boardHeightInPixels);
+
                 // Draw non-Tetris text in plain white
                 tsl::Color textColor(0xF, 0xF, 0xF, 0xF);  // White text
                 renderer->drawString(linesClearedText.c_str(), false, textX, textY, fontSize, textColor);
@@ -466,6 +509,9 @@ public:
             // Disable scissoring after drawing
             renderer->disableScissoring();
         }
+
+
+        
         
         
 
