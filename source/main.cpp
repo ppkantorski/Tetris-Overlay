@@ -49,6 +49,7 @@ struct Particle {
     float alpha;     // Transparency (fades out)
 };
 
+const int MAX_PARTICLES = 800;
 std::vector<Particle> particles;
 
 
@@ -195,23 +196,29 @@ bool isPositionValid(const Tetrimino& tet, const std::array<std::array<int, BOAR
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
             int rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
+            
             if (tetriminoShapes[tet.type][rotatedIndex] != 0) {
                 int x = tet.x + j;
                 int y = tet.y + i;
 
-                // Check if the position is within the board bounds
-                if (x < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT) {
-                    return false;
+                // Ensure x is within board width
+                if (x < 0 || x >= BOARD_WIDTH) {
+                    return false; // Out of horizontal bounds
                 }
-                // Check if the space is occupied
-                if (y >= 0 && board[y][x] != 0) {
-                    return false;
+
+                // Skip checking if y < 0, as this is above the visible board
+                if (y >= 0) {
+                    // Check if the space is occupied by another block
+                    if (y >= BOARD_HEIGHT || board[y][x] != 0) {
+                        return false; // The space is occupied or out of bounds vertically
+                    }
                 }
             }
         }
     }
-    return true;
+    return true; // Valid position
 }
+
 
 
 // Helper function to calculate where the Tetrimino will land if hard dropped
@@ -309,34 +316,26 @@ public:
         // Update and draw particles
         tsl::Color particleColor(0);
         int particleDrawX, particleDrawY;
-        for (auto it = particles.begin(); it != particles.end();) {
-            it->x += it->vx;
-            it->y += it->vy;
-        
-            // Reduce the alpha value for smooth fade-out
-            it->alpha -= 0.04f;
-            it->life -= 0.02f;
-        
-            // Draw particle if still alive and visible
-            if (it->life > 0 && it->alpha > 0) {
-                // Calculate particle position relative to board
-                particleDrawX = offsetX + static_cast<int>(it->x);
-                particleDrawY = offsetY + static_cast<int>(it->y);
+
+        // Update and draw particles (only handle the drawing part here)
+        for (const auto& particle : particles) {
+            if (particle.life > 0 && particle.alpha > 0) {
+                // Calculate particle position relative to the board
+                particleDrawX = offsetX + static_cast<int>(particle.x);
+                particleDrawY = offsetY + static_cast<int>(particle.y);
         
                 // Generate a random color for each particle in RGB4444 format
                 particleColor = tsl::Color({
                     static_cast<u8>(rand() % 16),  // Random Red component (4 bits, 0x0 to 0xF)
                     static_cast<u8>(rand() % 16),  // Random Green component (4 bits, 0x0 to 0xF)
                     static_cast<u8>(rand() % 16),  // Random Blue component (4 bits, 0x0 to 0xF)
-                    static_cast<u8>(it->alpha * 15)  // Alpha component (4 bits, scaled to 0x0 to 0xF)
+                    static_cast<u8>(particle.alpha * 15)  // Alpha component (4 bits, scaled to 0x0 to 0xF)
                 });
         
                 renderer->drawRect(particleDrawX, particleDrawY, 4, 4, particleColor);
-                ++it;
-            } else {
-                it = particles.erase(it);
             }
         }
+
 
 
         // Draw the stored Tetrimino
@@ -369,7 +368,7 @@ public:
             std::chrono::duration<float, std::milli> elapsedTime = currentTime - textStartTime;
         
             // Define total duration of the fade effect
-            float fadeDuration = 1500.0f;  // Total time in milliseconds (2 seconds)
+            float fadeDuration = 2000.0f;  // Total time in milliseconds (2 seconds)
             float fadeAlpha = 0.0f;
         
             // Map the elapsed time to a sine wave for smooth fade-in and fade-out
@@ -417,7 +416,7 @@ public:
                         static_cast<u8>((std::get<0>(dynamicLogoRGB2) - std::get<0>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<0>(dynamicLogoRGB1)),
                         static_cast<u8>((std::get<1>(dynamicLogoRGB2) - std::get<1>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<1>(dynamicLogoRGB1)),
                         static_cast<u8>((std::get<2>(dynamicLogoRGB2) - std::get<2>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<2>(dynamicLogoRGB1)),
-                        alphaValue  // Use the fadeAlpha for the transparency
+                        0xF  // Use the fadeAlpha for the transparency
                     };
         
                     // Draw each character individually
@@ -516,24 +515,33 @@ private:
     
     // Helper function to draw a single Tetrimino (handles both ghost and normal rendering)
     void drawSingleTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tet, int offsetX, int offsetY, bool isGhost) {
+        tsl::Color color(0);
+        tsl::Color innerColor(0);
+        int rotatedIndex;
+        int x, y;
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                int rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
+                rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
                 if (tetriminoShapes[tet.type][rotatedIndex] != 0) {
-                    int x = offsetX + (tet.x + j) * _w;
-                    int y = offsetY + (tet.y + i) * _h;
+                    x = offsetX + (tet.x + j) * _w;
+                    y = offsetY + (tet.y + i) * _h;
+    
+                    // Skip rendering for blocks above the top of the visible board
+                    if (tet.y + i < 0) {
+                        continue;
+                    }
                     
-                    tsl::Color color = tetriminoColors[tet.type];
+                    color = tetriminoColors[tet.type];
                     if (isGhost) {
                         // Make the ghost piece semi-transparent
-                        color.a = static_cast<u8>(color.a * 0.3);  // Adjust transparency
+                        color.a = static_cast<u8>(color.a * 0.3);  // Adjust transparency for ghost piece
                     }
                     
                     // Draw the outer block
                     renderer->drawRect(x, y, _w, _h, color);
                     
                     // Draw the inner block (darker shade)
-                    tsl::Color innerColor = {
+                    innerColor = {
                         static_cast<u8>(color.r * 0.7),
                         static_cast<u8>(color.g * 0.7),
                         static_cast<u8>(color.b * 0.7),
@@ -544,6 +552,7 @@ private:
             }
         }
     }
+
 
     void drawTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tet, int offsetX, int offsetY) {
         // Calculate the drop position for the ghost piece
@@ -975,6 +984,22 @@ public:
         return rootFrame;
     }
 
+    void updateParticles() {
+        for (auto it = particles.begin(); it != particles.end();) {
+            it->x += it->vx;
+            it->y += it->vy;
+            it->alpha -= 0.04f;  // Fade out the particle
+            it->life -= 0.02f;   // Decrease the lifespan
+    
+            // If the particle is still alive and visible, keep it
+            if (it->life > 0 && it->alpha > 0) {
+                ++it;
+            } else {
+                // Remove the dead particle
+                it = particles.erase(it);
+            }
+        }
+    }
 
 
     virtual void update() override {
@@ -1001,6 +1026,9 @@ public:
                 }
                 fallCounter = std::chrono::milliseconds(0); // Reset fall counter
             }
+
+            // Update the particles
+            updateParticles();  // Add this line to update particle positions
 
             timeSinceLastFrame = currentTime;
         }
@@ -1075,7 +1103,7 @@ public:
         totalSoftDropDistance = 0;
         hardDropDistance = 0;
         
-        if (!isPositionValid(currentTetrimino)) {
+        if (!isPositionValid(currentTetrimino, board)) {
             tetrisElement->gameOver = true;
         }
     }
@@ -1409,41 +1437,18 @@ private:
     std::chrono::milliseconds getFallSpeed() {
         // Define the fall speeds in milliseconds based on levels (simulating classic Tetris)
         const std::array<int, 30> fallSpeeds = {
-            800, // Level 0: 800ms per row drop
-            720, // Level 1
-            630, // Level 2
-            550, // Level 3
-            470, // Level 4
-            380, // Level 5
-            300, // Level 6
-            220, // Level 7
-            130, // Level 8
-            100, // Level 9
-            80,  // Level 10
-            80,  // Level 11
-            80,  // Level 12
-            80,  // Level 13
-            70,  // Level 14
-            70,  // Level 15
-            70,  // Level 16
-            50,  // Level 17
-            50,  // Level 18
-            50,  // Level 19
-            30,  // Level 20
-            30,  // Level 21
-            30,  // Level 22
-            20,  // Level 23
-            20,  // Level 24
-            20,  // Level 25
-            20,  // Level 26
-            20,  // Level 27
-            20,  // Level 28
-            16   // Level 29 and above (maximum speed, 16ms per row)
+            800, 720, 630, 550, 470, 380, 300, 220, 130, 100, 
+            80,  80,  80,  80,  70,  70,  70,  50,  50,  50,
+            30,  30,  30,  20,  20,  20,  20,  20,  20,  16
         };
-    
-        // If the current level is 29 or higher, return the max speed (Level 29 speed)
+        
+        // Get the appropriate fall speed for the current level, clamping if necessary
         int level = std::min(tetrisElement->getLevel(), static_cast<int>(fallSpeeds.size() - 1));
-        return std::chrono::milliseconds(fallSpeeds[level]);
+        
+        // Set a minimum threshold for fall speed to avoid it becoming too fast
+        int fallSpeed = std::max(fallSpeeds[level], 16); // Minimum 16ms
+        
+        return std::chrono::milliseconds(fallSpeed);
     }
 
 
@@ -1452,7 +1457,7 @@ private:
         currentTetrimino.x += dx;
         currentTetrimino.y += dy;
         
-        if (!isPositionValid(currentTetrimino)) {
+        if (!isPositionValid(currentTetrimino, board)) {
             currentTetrimino.x -= dx;
             currentTetrimino.y -= dy;
         } else {
@@ -1481,39 +1486,39 @@ private:
     bool tSpinOccurred = false; // Add this member to TetrisGui class
     
     void rotatePiece(int direction) {
-        // Store previous state in case rotation is invalid
         int previousRotation = currentTetrimino.rotation;
         int previousX = currentTetrimino.x;
         int previousY = currentTetrimino.y;
-        
+    
         // Update rotation (Clockwise: -1, Counterclockwise: +1)
         currentTetrimino.rotation = (currentTetrimino.rotation + direction + 4) % 4;
-        
-        // Determine which wall kick data to use (I-piece vs others)
+    
+        // Determine which wall kick table to use (I-piece vs others)
         const auto& kicks = (currentTetrimino.type == 0) ? wallKicksI : wallKicksJLSTZ;
         
-        // Apply wall kicks
+        // Iterate through the kicks for the specific rotation change
         for (int i = 0; i < 5; ++i) {
             // Wall kicks are defined between two states: current to the new one
-            int kickIndex = direction > 0 ? previousRotation : currentTetrimino.rotation;
+            int kickIndex = (direction > 0) ? previousRotation : currentTetrimino.rotation;
             const auto& kick = kicks[kickIndex][i];
-            
-            // Apply kick
+    
+            // Apply the kick
             currentTetrimino.x = previousX + kick.first;
             currentTetrimino.y = previousY + kick.second;
-            
+    
             // Check if the new position is valid
-            if (isPositionValid(currentTetrimino)) {
-                // If valid, rotation is successful
+            if (isPositionValid(currentTetrimino, board)) {
+                // Successfully applied the wall kick
                 return;
             }
         }
-        
-        // If no valid rotation was found, revert to the previous state
+    
+        // Revert if no valid rotation was found
         currentTetrimino.rotation = previousRotation;
         currentTetrimino.x = previousX;
         currentTetrimino.y = previousY;
     }
+
 
     bool isTSpin() {
         if (currentTetrimino.type != 5) return false; // Only T piece can T-Spin
@@ -1535,26 +1540,29 @@ private:
         return x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT;
     }
     
-    bool isPositionValid(const Tetrimino& tet) {
+    bool isPositionValid(const Tetrimino& tet, const std::array<std::array<int, BOARD_WIDTH>, BOARD_HEIGHT>& board) {
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
                 int rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
+                
                 if (tetriminoShapes[tet.type][rotatedIndex] != 0) {
                     int x = tet.x + j;
                     int y = tet.y + i;
     
-                    // Allow pieces to be slightly above the grid (y < 0)
+                    // Ensure x is within board width and y is within board height
                     if (x < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT) {
-                        return false; // Invalid if out of horizontal bounds or below the bottom
+                        return false; // Out of horizontal bounds or below the board
                     }
+                    // Check if the block is within a valid area of the board (y >= 0) and not occupied
                     if (y >= 0 && board[y][x] != 0) {
-                        return false; // Check if the space is occupied (only if it's within the grid)
+                        return false; // The space is occupied by another block
                     }
                 }
             }
         }
-        return true;
+        return true; // Valid position
     }
+
 
 
     void placeTetrimino() {
@@ -1562,8 +1570,15 @@ private:
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
                 int rotatedIndex = getRotatedIndex(currentTetrimino.type, i, j, currentTetrimino.rotation);
+                
                 if (tetriminoShapes[currentTetrimino.type][rotatedIndex] != 0) {
-                    board[currentTetrimino.y + i][currentTetrimino.x + j] = currentTetrimino.type + 1; // Store color index
+                    int x = currentTetrimino.x + j;
+                    int y = currentTetrimino.y + i;
+    
+                    // Only place the block if y is within the board (y >= 0)
+                    if (y >= 0) {
+                        board[y][x] = currentTetrimino.type + 1; // Place the block
+                    }
                 }
             }
         }
@@ -1586,9 +1601,9 @@ private:
     
     // Modify the clearLines function to handle scoring and leveling up
     void clearLines() {
-        int linesClearedInThisTurn = 0;
-        int totalYPosition = 0;  // To calculate average Y-position for cleared lines
-    
+        int linesClearedInThisTurn = 0;  // Track how many lines were cleared in this turn
+        int totalYPosition = 0;  // To calculate the average Y-position for displaying cleared lines text
+        
         for (int i = 0; i < BOARD_HEIGHT; ++i) {
             bool fullLine = true;
             for (int j = 0; j < BOARD_WIDTH; ++j) {
@@ -1597,40 +1612,53 @@ private:
                     break;
                 }
             }
-    
+            
             if (fullLine) {
-                linesClearedInThisTurn++;
-                totalYPosition += i * _h;  // Sum Y-positions for centering text
+                linesClearedInThisTurn++;  // Count how many lines are cleared
+                totalYPosition += i * _h;  // Track Y-position for text rendering
     
-                // Create particles as before
+                // Remove the full line and create particles for line clear effect
                 for (int x = 0; x < BOARD_WIDTH; ++x) {
-                    for (int p = 0; p < 10; ++p) {  // 10 particles per block
+                    for (int p = 0; p < 10; ++p) {
+                        // Check if the total number of particles exceeds the limit
+                        if (particles.size() >= MAX_PARTICLES) {
+                            // Remove the oldest particle to make space for new ones
+                            particles.erase(particles.begin());
+                        }
+                        
+                        // Add the new particle
                         particles.push_back(Particle{
-                            static_cast<float>(x * _w + _w / 2),  // X position (center of block)
-                            static_cast<float>(i * _h + _h / 2),  // Y position (center of block)
-                            (rand() % 100 / 50.0f - 1.0f) * 8,    // Random X velocity
-                            (rand() % 100 / 50.0f - 1.0f) * 8,    // Random Y velocity
-                            0.5f,  // Shorter lifespan
-                            1.0f   // Full opacity
+                            static_cast<float>(x * _w + _w / 2),
+                            static_cast<float>(i * _h + _h / 2),
+                            (rand() % 100 / 50.0f - 1.0f) * 8,
+                            (rand() % 100 / 50.0f - 1.0f) * 8,
+                            0.5f,
+                            1.0f
                         });
                     }
                 }
+
     
-                // Shift rows logic...
+                // Shift rows down after clearing the full line
                 for (int y = i; y > 0; --y) {
                     for (int x = 0; x < BOARD_WIDTH; ++x) {
                         board[y][x] = board[y - 1][x];
                     }
                 }
+    
+                // Clear the top row
                 for (int x = 0; x < BOARD_WIDTH; ++x) {
                     board[0][x] = 0;
                 }
             }
         }
-        
-
+    
+        // If lines were cleared, update the score and level, and show feedback text
         if (linesClearedInThisTurn > 0) {
-            // Update score based on the number of lines cleared
+            // Update the total lines cleared
+            tetrisElement->setLinesCleared(tetrisElement->getLinesCleared() + linesClearedInThisTurn);
+    
+            // Update score based on how many lines were cleared
             int scoreMultiplier = 0;
             switch (linesClearedInThisTurn) {
                 case 1: scoreMultiplier = 100; break;
@@ -1640,42 +1668,60 @@ private:
             }
             int newScore = scoreMultiplier * tetrisElement->getLevel();
             tetrisElement->setScore(tetrisElement->getScore() + newScore);
-
-            // Increment lines cleared and check for level up
+    
+            // Level up after clearing a certain number of lines
             linesClearedForLevelUp += linesClearedInThisTurn;
             if (linesClearedForLevelUp >= LINES_PER_LEVEL) {
-                linesClearedForLevelUp -= LINES_PER_LEVEL;  // Reset lines for next level
-                tetrisElement->setLevel(tetrisElement->getLevel() + 1);  // Increase level
-                //adjustFallSpeed();  // Adjust fall speed for the new level
+                linesClearedForLevelUp -= LINES_PER_LEVEL;  // Reset the count for the next level
+                tetrisElement->setLevel(tetrisElement->getLevel() + 1);  // Increase the level
             }
-
-            // Show cleared lines text (Single, Double, Triple, Tetris)
+    
+            // Show feedback text based on the number of lines cleared
             switch (linesClearedInThisTurn) {
                 case 1: tetrisElement->linesClearedText = "Single"; break;
                 case 2: tetrisElement->linesClearedText = "Double"; break;
                 case 3: tetrisElement->linesClearedText = "Triple"; break;
                 case 4: tetrisElement->linesClearedText = "Tetris"; break;
             }
+    
             tetrisElement->showText = true;
             tetrisElement->fadeAlpha = 0.0f;  // Start fade animation
-            tetrisElement->textStartTime = std::chrono::system_clock::now();
+            tetrisElement->textStartTime = std::chrono::system_clock::now();  // Track animation start time
         }
     }
-    
-    
     
 
     void spawnNewTetrimino() {
         currentTetrimino = Tetrimino(nextTetrimino.type);
         currentTetrimino.x = BOARD_WIDTH / 2 - 2;
-        currentTetrimino.y = 0;
-        // Check if the new tetrimino is in a valid position
-        if (!isPositionValid(currentTetrimino)) {
-            tetrisElement->gameOver = true; // Set game over
+    
+        // Calculate the topmost row with a block to adjust the starting Y position
+        int topmostRow = 4; // Start with the assumption that the piece may be 4 rows high
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                int rotatedIndex = getRotatedIndex(currentTetrimino.type, i, j, currentTetrimino.rotation);
+                if (tetriminoShapes[currentTetrimino.type][rotatedIndex] != 0) {
+                    topmostRow = std::min(topmostRow, i); // Find the topmost row with a block
+                    break; // No need to continue checking this row
+                }
+            }
+        }
+    
+        // Set the initial Y position, adjusted for the topmost block
+        currentTetrimino.y = -topmostRow; // Allow the piece to start partially off-screen if necessary
+    
+        // Check if the new Tetrimino is in a valid position
+        if (!isPositionValid(currentTetrimino, board)) {
+            // Game over: the new Tetrimino can't be placed
+            tetrisElement->gameOver = true;
         } else {
-            nextTetrimino = Tetrimino(rand() % 7);
+            nextTetrimino = Tetrimino(rand() % 7); // Prepare the next piece
         }
     }
+
+
+
+
 };
 
 class Overlay : public tsl::Overlay {
