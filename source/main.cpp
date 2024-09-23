@@ -155,6 +155,9 @@ const int BOARD_HEIGHT = 20;
 
 // Updated helper function to get rotated index
 int getRotatedIndex(int type, int i, int j, int rotation) {
+    // Ensure i and j are within bounds
+    if (i < 0 || i >= 4 || j < 0 || j >= 4) return -1;
+
     if (type == 0) { // I piece
         int rotatedIndex = 0;
         switch (rotation) {
@@ -164,27 +167,33 @@ int getRotatedIndex(int type, int i, int j, int rotation) {
             case 3: rotatedIndex = i + (3 - j) * 4; break;
         }
         return rotatedIndex;
-    } else if (type == 3) { // O piece
+    } else if (type == 3) { // O piece doesn't rotate
         return i * 4 + j;
     } else {
-        // General case for other pieces using rotation around their center
+        // General case for other pieces
         float centerX = rotationCenters[type].first;
         float centerY = rotationCenters[type].second;
         int relX = j - centerX;
         int relY = i - centerY;
         int rotatedX, rotatedY;
+
         switch (rotation) {
             case 0: rotatedX = relX; rotatedY = relY; break;
             case 1: rotatedX = -relY; rotatedY = relX; break;
             case 2: rotatedX = -relX; rotatedY = -relY; break;
             case 3: rotatedX = relY; rotatedY = -relX; break;
         }
+
         int finalX = static_cast<int>(round(rotatedX + centerX));
         int finalY = static_cast<int>(round(rotatedY + centerY));
+
+        // Ensure the rotated index is within the 4x4 grid
         if (finalX < 0 || finalX >= 4 || finalY < 0 || finalY >= 4) return -1;
         return finalY * 4 + finalX;
     }
 }
+
+
 
 
 
@@ -327,7 +336,8 @@ public:
         int particleDrawX, particleDrawY;
 
         // Update and draw particles (only handle the drawing part here)
-        for (const auto& particle : particles) {
+        auto particlesCopy = particles;
+        for (const auto& particle : particlesCopy) {
             if (particle.life > 0 && particle.alpha > 0) {
                 // Calculate particle position relative to the board
                 particleDrawX = offsetX + static_cast<int>(particle.x);
@@ -996,27 +1006,27 @@ public:
     }
 
     void updateParticles() {
-        std::lock_guard<std::mutex> lock(boardMutex);  // Safeguard particle updates
-        
-        for (auto it = particles.begin(); it != particles.end();) {
+        std::vector<std::vector<Particle>::iterator> particlesToRemove;
+    
+        for (auto it = particles.begin(); it != particles.end(); ++it) {
             it->x += it->vx;
             it->y += it->vy;
-            it->alpha -= 0.04f;  // Fade out the particle
-            it->life -= 0.02f;   // Decrease the lifespan
+            it->alpha -= 0.04f;
+            it->life -= 0.02f;
     
-            // Remove dead particles
             if (it->life <= 0 || it->alpha <= 0) {
-                it = particles.erase(it);
-            } else {
-                ++it;
+                particlesToRemove.push_back(it);
             }
         }
-
-        // Ensure particle count stays within bounds
-        if (particles.size() > MAX_PARTICLES) {
-            particles.erase(particles.begin(), particles.begin() + (particles.size() - MAX_PARTICLES));
+    
+        std::lock_guard<std::mutex> lock(boardMutex);  // Lock when modifying the particle list
+    
+        for (auto& it : particlesToRemove) {
+            particles.erase(it);
         }
     }
+
+
 
 
 
@@ -1540,14 +1550,15 @@ private:
     bool tSpinOccurred = false; // Add this member to TetrisGui class
     
     void rotatePiece(int direction) {
+        std::lock_guard<std::mutex> lock(boardMutex);  // Lock the board for safe rotation
+    
         int previousRotation = currentTetrimino.rotation;
         int previousX = currentTetrimino.x;
         int previousY = currentTetrimino.y;
     
-        // Update rotation (Clockwise: -1, Counterclockwise: +1)
+        // Update rotation
         currentTetrimino.rotation = (currentTetrimino.rotation + direction + 4) % 4;
     
-        // Determine which wall kick table to use (I-piece vs others)
         const auto& kicks = (currentTetrimino.type == 0) ? wallKicksI : wallKicksJLSTZ;
     
         // Try all the wall kick possibilities
@@ -1555,15 +1566,13 @@ private:
             int kickIndex = (direction > 0) ? previousRotation : currentTetrimino.rotation;
             const auto& kick = kicks[kickIndex][i];
     
-            // Apply the kick
             currentTetrimino.x = previousX + kick.first;
             currentTetrimino.y = previousY + kick.second;
     
-            // Ensure y is within bounds and check if the new position is valid
-            if (currentTetrimino.y >= -1 && isPositionValid(currentTetrimino, board)) {
+            if (isPositionValid(currentTetrimino, board)) {
                 // Reset lock delay to prevent immediate locking after rotation
-                lockDelayCounter = std::chrono::milliseconds(0);  // Reset lock delay
-                lastRotationOrMoveTime = std::chrono::system_clock::now();  // Update last rotation time
+                lockDelayCounter = std::chrono::milliseconds(0);
+                lastRotationOrMoveTime = std::chrono::system_clock::now();
                 return;
             }
         }
@@ -1573,6 +1582,7 @@ private:
         currentTetrimino.x = previousX;
         currentTetrimino.y = previousY;
     }
+
 
 
 
@@ -1647,50 +1657,46 @@ private:
         hasSwapped = false;
     }
 
-
+    // Create line clear particles outside the main line-clear loop to reduce mutex locking time
+    void createLineClearParticles(int row) {
+        for (int x = 0; x < BOARD_WIDTH; ++x) {
+            for (int p = 0; p < 10; ++p) {
+                particles.push_back(Particle{
+                    static_cast<float>(x * _w + _w / 2),
+                    static_cast<float>(row * _h + _h / 2),
+                    (rand() % 100 / 50.0f - 1.0f) * 8,
+                    (rand() % 100 / 50.0f - 1.0f) * 8,
+                    0.5f,
+                    1.0f
+                });
+            }
+        }
+    }
 
     
     // Modify the clearLines function to handle scoring and leveling up
     void clearLines() {
-        std::lock_guard<std::mutex> lock(boardMutex); // Lock the mutex while clearing lines
-
-        int linesClearedInThisTurn = 0;  // Track how many lines were cleared in this turn
-        int totalYPosition = 0;  // To calculate the average Y-position for displaying cleared lines text
+        std::lock_guard<std::mutex> lock(boardMutex);  // Lock during line clearing
         
+        int linesClearedInThisTurn = 0;
+        int totalYPosition = 0;
+    
         for (int i = 0; i < BOARD_HEIGHT; ++i) {
             bool fullLine = true;
+    
             for (int j = 0; j < BOARD_WIDTH; ++j) {
                 if (board[i][j] == 0) {
                     fullLine = false;
                     break;
                 }
             }
-            
-            if (fullLine) {
-                linesClearedInThisTurn++;  // Count how many lines are cleared
-                totalYPosition += i * _h;  // Track Y-position for text rendering
     
-                // Remove the full line and create particles for line clear effect
-                for (int x = 0; x < BOARD_WIDTH; ++x) {
-                    for (int p = 0; p < 10; ++p) {
-                        // Check if the total number of particles exceeds the limit
-                        if (particles.size() >= MAX_PARTICLES) {
-                            // Remove the oldest particle to make space for new ones
-                            particles.erase(particles.begin());
-                        }
-                        
-                        // Add the new particle
-                        particles.push_back(Particle{
-                            static_cast<float>(x * _w + _w / 2),
-                            static_cast<float>(i * _h + _h / 2),
-                            (rand() % 100 / 50.0f - 1.0f) * 8,
-                            (rand() % 100 / 50.0f - 1.0f) * 8,
-                            0.5f,
-                            1.0f
-                        });
-                    }
-                }
-
+            if (fullLine) {
+                linesClearedInThisTurn++;
+                totalYPosition += i * _h;
+    
+                // Particle creation moved to another method to reduce mutex lock time
+                createLineClearParticles(i);
     
                 // Shift rows down after clearing the full line
                 for (int y = i; y > 0; --y) {
@@ -1699,9 +1705,11 @@ private:
                     }
                 }
     
-                // Clear the top row
+                // Clear the top row (with extra check to prevent top-bound crashes)
                 for (int x = 0; x < BOARD_WIDTH; ++x) {
-                    board[0][x] = 0;
+                    if (board[0][x] != 0) {
+                        board[0][x] = 0;
+                    }
                 }
             }
         }
