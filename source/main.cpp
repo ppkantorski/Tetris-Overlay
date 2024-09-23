@@ -748,54 +748,34 @@ public:
         offset = 6;
         countOffset = 0;
         
-
-        auto currentTimeCount = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
-        float progress;
-        static auto dynamicLogoRGB1 = tsl::hexToRGB444Floats("#6929ff");
-        static auto dynamicLogoRGB2 = tsl::hexToRGB444Floats("#fff429");
-        for (char letter : m_title) {
-            counter = (2 * M_PI * (fmod(currentTimeCount/4.0, 2.0) + countOffset) / 2.0);
-            progress = std::sin(3.0 * (counter - (2.0 * M_PI / 3.0))); // Faster transition from -1 to 1 and back in the remaining 1/3
-            
-            tsl::highlightColor = {
-                static_cast<u8>((std::get<0>(dynamicLogoRGB2) - std::get<0>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<0>(dynamicLogoRGB1)),
-                static_cast<u8>((std::get<1>(dynamicLogoRGB2) - std::get<1>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<1>(dynamicLogoRGB1)),
-                static_cast<u8>((std::get<2>(dynamicLogoRGB2) - std::get<2>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<2>(dynamicLogoRGB1)),
-                15
-            };
-            
-            renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, a(tsl::highlightColor));
-            x += renderer->calculateStringWidth(std::string(1, letter), fontSize);
-            countOffset -= 0.2F;
+        
+        if (!tsl::disableColorfulLogo) {
+            auto currentTimeCount = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+            float progress;
+            static auto dynamicLogoRGB1 = tsl::hexToRGB444Floats("#6929ff");
+            static auto dynamicLogoRGB2 = tsl::hexToRGB444Floats("#fff429");
+            for (char letter : m_title) {
+                counter = (2 * M_PI * (fmod(currentTimeCount/4.0, 2.0) + countOffset) / 2.0);
+                progress = std::sin(3.0 * (counter - (2.0 * M_PI / 3.0))); // Faster transition from -1 to 1 and back in the remaining 1/3
+                
+                tsl::highlightColor = {
+                    static_cast<u8>((std::get<0>(dynamicLogoRGB2) - std::get<0>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<0>(dynamicLogoRGB1)),
+                    static_cast<u8>((std::get<1>(dynamicLogoRGB2) - std::get<1>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<1>(dynamicLogoRGB1)),
+                    static_cast<u8>((std::get<2>(dynamicLogoRGB2) - std::get<2>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<2>(dynamicLogoRGB1)),
+                    15
+                };
+                
+                renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, a(tsl::highlightColor));
+                x += renderer->calculateStringWidth(std::string(1, letter), fontSize);
+                countOffset -= 0.2F;
+            }
+        } else {
+            for (char letter : m_title) {
+                renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, a(tsl::logoColor1));
+                x += renderer->calculateStringWidth(std::string(1, letter), fontSize);
+                countOffset -= 0.2F;
+            }
         }
-
-        //if (!tsl::disableColorfulLogo) {
-        //    auto currentTimeCount = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
-        //    float progress;
-        //    static auto dynamicLogoRGB1 = tsl::hexToRGB444Floats("#6929ff");
-        //    static auto dynamicLogoRGB2 = tsl::hexToRGB444Floats("#fff429");
-        //    for (char letter : m_title) {
-        //        counter = (2 * M_PI * (fmod(currentTimeCount/4.0, 2.0) + countOffset) / 2.0);
-        //        progress = std::sin(3.0 * (counter - (2.0 * M_PI / 3.0))); // Faster transition from -1 to 1 and back in the remaining 1/3
-        //        
-        //        tsl::highlightColor = {
-        //            static_cast<u8>((std::get<0>(dynamicLogoRGB2) - std::get<0>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<0>(dynamicLogoRGB1)),
-        //            static_cast<u8>((std::get<1>(dynamicLogoRGB2) - std::get<1>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<1>(dynamicLogoRGB1)),
-        //            static_cast<u8>((std::get<2>(dynamicLogoRGB2) - std::get<2>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<2>(dynamicLogoRGB1)),
-        //            15
-        //        };
-        //        
-        //        renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, a(tsl::highlightColor));
-        //        x += renderer->calculateStringWidth(std::string(1, letter), fontSize);
-        //        countOffset -= 0.2F;
-        //    }
-        //} else {
-        //    for (char letter : m_title) {
-        //        renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, a(tsl::logoColor1));
-        //        x += renderer->calculateStringWidth(std::string(1, letter), fontSize);
-        //        countOffset -= 0.2F;
-        //    }
-        //}
         
         
         if (!(hideBattery && hidePCBTemp && hideSOCTemp && hideClock)) {
@@ -960,6 +940,10 @@ public:
     int linesClearedForLevelUp = 0;  // Track how many lines cleared for leveling up
     const int LINES_PER_LEVEL = 10;  // Increment level every 10 lines
 
+    // Variables to track time of last rotation or movement
+    std::chrono::time_point<std::chrono::system_clock> lastRotationOrMoveTime;
+    const std::chrono::milliseconds lockDelayExtension = std::chrono::milliseconds(500); // 500ms extension
+
     TetrisGui() : board(), currentTetrimino(rand() % 7), nextTetrimino(rand() % 7) {
 
         std::srand(std::time(0));
@@ -971,6 +955,8 @@ public:
         // Initial fall speed (1000 ms = 1 second)
         initialFallSpeed = std::chrono::milliseconds(500);
         fallCounter = std::chrono::milliseconds(0);
+
+        lastRotationOrMoveTime = std::chrono::system_clock::now();  // Initialize with current time
     }
 
     virtual tsl::elm::Element* createUI() override {
@@ -1009,12 +995,16 @@ public:
 
             // Handle piece falling
             fallCounter += std::chrono::duration_cast<std::chrono::milliseconds>(elapsed);
-            if (fallCounter >= getFallSpeed()) {  // Use dynamic fall speed calculation
+            if (fallCounter >= getFallSpeed()) {
                 // Try to move the piece down
                 if (!move(0, 1)) { // Move down failed, piece touched the ground
                     lockDelayCounter += fallCounter; // Add elapsed time to lock delay counter
-                    if (lockDelayCounter >= lockDelayTime) {
-                        // Lock the piece after the lock delay has passed
+
+                    // Check if more than 500ms has passed since the last move/rotation
+                    auto timeSinceLastRotationOrMove = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastRotationOrMoveTime);
+
+                    if (lockDelayCounter >= lockDelayTime && timeSinceLastRotationOrMove >= lockDelayExtension) {
+                        // Lock the piece after the lock delay has passed and no rotation occurred recently
                         placeTetrimino();
                         clearLines();
                         spawnNewTetrimino();
@@ -1028,7 +1018,7 @@ public:
             }
 
             // Update the particles
-            updateParticles();  // Add this line to update particle positions
+            updateParticles();
 
             timeSinceLastFrame = currentTime;
         }
@@ -1437,11 +1427,38 @@ private:
     std::chrono::milliseconds getFallSpeed() {
         // Define the fall speeds in milliseconds based on levels (simulating classic Tetris)
         const std::array<int, 30> fallSpeeds = {
-            800, 720, 630, 550, 470, 380, 300, 220, 130, 100, 
-            80,  80,  80,  80,  70,  70,  70,  50,  50,  50,
-            30,  30,  30,  20,  20,  20,  20,  20,  20,  16
+            800, // Level 0: 800ms per row drop
+            720, // Level 1
+            630, // Level 2
+            550, // Level 3
+            470, // Level 4
+            380, // Level 5
+            300, // Level 6
+            220, // Level 7
+            130, // Level 8
+            100, // Level 9
+            80,  // Level 10
+            80,  // Level 11
+            80,  // Level 12
+            80,  // Level 13
+            70,  // Level 14
+            70,  // Level 15
+            70,  // Level 16
+            50,  // Level 17
+            50,  // Level 18
+            50,  // Level 19
+            30,  // Level 20
+            30,  // Level 21
+            30,  // Level 22
+            20,  // Level 23
+            20,  // Level 24
+            20,  // Level 25
+            20,  // Level 26
+            20,  // Level 27
+            20,  // Level 28
+            16   // Level 29 and above (maximum speed, 16ms per row)
         };
-        
+    
         // Get the appropriate fall speed for the current level, clamping if necessary
         int level = std::min(tetrisElement->getLevel(), static_cast<int>(fallSpeeds.size() - 1));
         
@@ -1456,19 +1473,23 @@ private:
         bool success = false;
         currentTetrimino.x += dx;
         currentTetrimino.y += dy;
-        
+
         if (!isPositionValid(currentTetrimino, board)) {
             currentTetrimino.x -= dx;
             currentTetrimino.y -= dy;
         } else {
             success = true;
-    
+
             if (dy > 0) {
                 // Accumulate points for soft drops (1 point per row)
                 totalSoftDropDistance += dy;
+            } else {
+                // Reset lock delay if there was a horizontal movement
+                lockDelayCounter = std::chrono::milliseconds(0);
+                lastRotationOrMoveTime = std::chrono::system_clock::now();  // Update the last move time
             }
         }
-        
+
         return success;
     }
 
@@ -1489,35 +1510,38 @@ private:
         int previousRotation = currentTetrimino.rotation;
         int previousX = currentTetrimino.x;
         int previousY = currentTetrimino.y;
-    
+
         // Update rotation (Clockwise: -1, Counterclockwise: +1)
         currentTetrimino.rotation = (currentTetrimino.rotation + direction + 4) % 4;
-    
+
         // Determine which wall kick table to use (I-piece vs others)
         const auto& kicks = (currentTetrimino.type == 0) ? wallKicksI : wallKicksJLSTZ;
-        
-        // Iterate through the kicks for the specific rotation change
+
+        // Try all the wall kick possibilities
         for (int i = 0; i < 5; ++i) {
-            // Wall kicks are defined between two states: current to the new one
             int kickIndex = (direction > 0) ? previousRotation : currentTetrimino.rotation;
             const auto& kick = kicks[kickIndex][i];
-    
+
             // Apply the kick
             currentTetrimino.x = previousX + kick.first;
             currentTetrimino.y = previousY + kick.second;
-    
+
             // Check if the new position is valid
             if (isPositionValid(currentTetrimino, board)) {
-                // Successfully applied the wall kick
+                // Reset lock delay to prevent immediate locking after rotation
+                lockDelayCounter = std::chrono::milliseconds(0);  // Reset lock delay
+                lastRotationOrMoveTime = std::chrono::system_clock::now();  // Update last rotation time
                 return;
             }
         }
-    
+
         // Revert if no valid rotation was found
         currentTetrimino.rotation = previousRotation;
         currentTetrimino.x = previousX;
         currentTetrimino.y = previousY;
     }
+
+
 
 
     bool isTSpin() {
