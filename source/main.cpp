@@ -41,7 +41,7 @@
 #include <mutex>
 
 std::mutex boardMutex;  // Declare a mutex for board access
-
+std::mutex particleMutex;
 
 bool isGameOver = false;
 
@@ -53,7 +53,7 @@ struct Particle {
     float alpha;     // Transparency (fades out)
 };
 
-const int MAX_PARTICLES = 800;
+//const int MAX_PARTICLES = 800;
 std::vector<Particle> particles;
 
 
@@ -332,29 +332,29 @@ public:
         }
 
         // Update and draw particles
-        tsl::Color particleColor(0);
-        int particleDrawX, particleDrawY;
-
-        // Update and draw particles (only handle the drawing part here)
-        auto particlesCopy = particles;
-        for (const auto& particle : particlesCopy) {
-            if (particle.life > 0 && particle.alpha > 0) {
-                // Calculate particle position relative to the board
-                particleDrawX = offsetX + static_cast<int>(particle.x);
-                particleDrawY = offsetY + static_cast<int>(particle.y);
-        
-                // Generate a random color for each particle in RGB4444 format
-                particleColor = tsl::Color({
-                    static_cast<u8>(rand() % 16),  // Random Red component (4 bits, 0x0 to 0xF)
-                    static_cast<u8>(rand() % 16),  // Random Green component (4 bits, 0x0 to 0xF)
-                    static_cast<u8>(rand() % 16),  // Random Blue component (4 bits, 0x0 to 0xF)
-                    static_cast<u8>(particle.alpha * 15)  // Alpha component (4 bits, scaled to 0x0 to 0xF)
-                });
-        
-                renderer->drawRect(particleDrawX, particleDrawY, 4, 4, particleColor);
-            }
-        }
-
+        //tsl::Color particleColor(0);
+        //int particleDrawX, particleDrawY;
+        //
+        //// Update and draw particles (only handle the drawing part here)
+        //auto particlesCopy = particles;
+        //for (const auto& particle : particlesCopy) {
+        //    if (particle.life > 0 && particle.alpha > 0) {
+        //        // Calculate particle position relative to the board
+        //        particleDrawX = offsetX + static_cast<int>(particle.x);
+        //        particleDrawY = offsetY + static_cast<int>(particle.y);
+        //        
+        //        // Generate a random color for each particle in RGB4444 format
+        //        particleColor = tsl::Color({
+        //            static_cast<u8>(rand() % 16),  // Random Red component (4 bits, 0x0 to 0xF)
+        //            static_cast<u8>(rand() % 16),  // Random Green component (4 bits, 0x0 to 0xF)
+        //            static_cast<u8>(rand() % 16),  // Random Blue component (4 bits, 0x0 to 0xF)
+        //            static_cast<u8>(particle.alpha * 15)  // Alpha component (4 bits, scaled to 0x0 to 0xF)
+        //        });
+        //
+        //        renderer->drawRect(particleDrawX, particleDrawY, 4, 4, particleColor);
+        //    }
+        //}
+        drawParticles(renderer, offsetX, offsetY);
 
 
         // Draw the stored Tetrimino
@@ -534,6 +534,35 @@ private:
     int linesCleared = 0;
     int level = 1;
     
+
+    void drawParticles(tsl::gfx::Renderer* renderer, int offsetX, int offsetY) {
+        tsl::Color particleColor(0);
+        int particleDrawX, particleDrawY;
+    
+        // Lock the particles vector while drawing to avoid race conditions
+        std::lock_guard<std::mutex> lock(particleMutex);  
+    
+        for (const auto& particle : particles) {
+            if (particle.life > 0 && particle.alpha > 0) {
+                // Calculate particle position relative to the board
+                particleDrawX = offsetX + static_cast<int>(particle.x);
+                particleDrawY = offsetY + static_cast<int>(particle.y);
+    
+                // Generate a random color for each particle in RGB4444 format
+                particleColor = tsl::Color({
+                    static_cast<u8>(rand() % 16),  // Random Red component (4 bits, 0x0 to 0xF)
+                    static_cast<u8>(rand() % 16),  // Random Green component (4 bits, 0x0 to 0xF)
+                    static_cast<u8>(rand() % 16),  // Random Blue component (4 bits, 0x0 to 0xF)
+                    static_cast<u8>(particle.alpha * 15)  // Alpha component (scaled to 0x0 to 0xF)
+                });
+    
+                // Draw the particle
+                renderer->drawRect(particleDrawX, particleDrawY, 4, 4, particleColor);
+            }
+        }
+    }
+
+
     // Helper function to draw a single Tetrimino (handles both ghost and normal rendering)
     void drawSingleTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tet, int offsetX, int offsetY, bool isGhost) {
         tsl::Color color(0);
@@ -1005,24 +1034,28 @@ public:
         return rootFrame;
     }
 
+
     void updateParticles() {
-        std::vector<std::vector<Particle>::iterator> particlesToRemove;
+        std::lock_guard<std::mutex> lock(particleMutex);  // Lock when modifying the particle list
     
-        for (auto it = particles.begin(); it != particles.end(); ++it) {
-            it->x += it->vx;
-            it->y += it->vy;
-            it->alpha -= 0.04f;
-            it->life -= 0.02f;
+        bool allParticlesExpired = true;
     
-            if (it->life <= 0 || it->alpha <= 0) {
-                particlesToRemove.push_back(it);
+        // Update all particles and check if all of them are expired
+        for (auto& particle : particles) {
+            particle.x += particle.vx;
+            particle.y += particle.vy;
+            particle.alpha -= 0.04f;
+            particle.life -= 0.02f;
+    
+            // If any particle is still alive, we won't remove the vector
+            if (particle.life > 0.0f && particle.alpha > 0.0f) {
+                allParticlesExpired = false;
             }
         }
     
-        std::lock_guard<std::mutex> lock(boardMutex);  // Lock when modifying the particle list
-    
-        for (auto& it : particlesToRemove) {
-            particles.erase(it);
+        // If all particles are expired (alpha <= 0 or life <= 0), clear the entire vector
+        if (allParticlesExpired) {
+            particles.clear();  // Clear the vector in one bulk operation
         }
     }
 
@@ -1065,8 +1098,16 @@ public:
             timeSinceLastFrame = currentTime;
         }
     }
+    
+    
 
     void resetGame() {
+        // Create an explosion effect before resetting the game
+        createCenterExplosionParticles();
+
+        // Delay the actual reset slightly to allow the explosion to be visible
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
         isGameOver = false;
         // Clear the board
         for (auto& row : board) {
@@ -1668,6 +1709,25 @@ private:
                     (rand() % 100 / 50.0f - 1.0f) * 8,
                     0.5f,
                     1.0f
+                });
+            }
+        }
+    }
+
+    void createCenterExplosionParticles() {
+        // Calculate the center row of the board
+        int centerRow = BOARD_HEIGHT / 2;
+    
+        // Generate particles at the center row
+        for (int x = 0; x < BOARD_WIDTH; ++x) {
+            for (int p = 0; p < 10; ++p) {
+                particles.push_back(Particle{
+                    static_cast<float>(x * _w + _w / 2),  // X position in the center row
+                    static_cast<float>(centerRow * _h + _h / 2),  // Y position in the center row
+                    (rand() % 100 / 50.0f - 1.0f) * 8,  // Random velocity in X direction
+                    (rand() % 100 / 50.0f - 1.0f) * 8,  // Random velocity in Y direction
+                    0.5f,  // Lifespan
+                    1.0f   // Initial alpha (fully visible)
                 });
             }
         }
