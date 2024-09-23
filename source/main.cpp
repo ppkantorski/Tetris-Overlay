@@ -354,7 +354,6 @@ public:
         //        renderer->drawRect(particleDrawX, particleDrawY, 4, 4, particleColor);
         //    }
         //}
-        drawParticles(renderer, offsetX, offsetY);
 
 
         // Draw the stored Tetrimino
@@ -381,6 +380,10 @@ public:
         // Draw the current Tetrimino
         drawTetrimino(renderer, *currentTetrimino, offsetX, offsetY);
 
+
+        // Update the particles
+        updateParticles(offsetX, offsetY);
+        drawParticles(renderer, offsetX, offsetY);
 
         // Draw the lines-cleared text with smooth sine wave-based color effect for each character when the text is "Tetris"
         if (showText) {
@@ -501,6 +504,37 @@ public:
         // Define layout boundaries
         this->setBoundaries(parentX, parentY, parentWidth, parentHeight);
     }
+
+    void updateParticles(int offsetX, int offsetY) {
+        std::lock_guard<std::mutex> lock(particleMutex);  // Lock when modifying the particle list
+    
+        bool allParticlesExpired = true;
+    
+        // Update all particles and check if all of them are expired
+        for (auto& particle : particles) {
+            particle.x += particle.vx;
+            particle.y += particle.vy;
+            particle.alpha -= 0.04f;
+            particle.life -= 0.02f;
+            
+            // Ensure the particle stays within bounds of the entire screen (448x720)
+            if (particle.x + offsetX < 0 || particle.x + offsetX > 448 || particle.y + offsetY < 0 || particle.y + offsetY > 720) {
+                particle.life = 0;  // Mark the particle as dead if out of bounds
+            }
+    
+            // If any particle is still alive, we won't remove the vector
+            if (particle.life > 0.0f && particle.alpha > 0.0f) {
+                allParticlesExpired = false;
+            }
+        }
+    
+        // If all particles are expired (alpha <= 0 or life <= 0), clear the entire vector
+        if (allParticlesExpired) {
+            particles.clear();  // Clear the vector in one bulk operation
+        }
+    }
+
+
 
     uint64_t getScore() {
         return scoreValue;
@@ -1035,31 +1069,6 @@ public:
     }
 
 
-    void updateParticles() {
-        std::lock_guard<std::mutex> lock(particleMutex);  // Lock when modifying the particle list
-    
-        bool allParticlesExpired = true;
-    
-        // Update all particles and check if all of them are expired
-        for (auto& particle : particles) {
-            particle.x += particle.vx;
-            particle.y += particle.vy;
-            particle.alpha -= 0.04f;
-            particle.life -= 0.02f;
-    
-            // If any particle is still alive, we won't remove the vector
-            if (particle.life > 0.0f && particle.alpha > 0.0f) {
-                allParticlesExpired = false;
-            }
-        }
-    
-        // If all particles are expired (alpha <= 0 or life <= 0), clear the entire vector
-        if (allParticlesExpired) {
-            particles.clear();  // Clear the vector in one bulk operation
-        }
-    }
-
-
 
 
 
@@ -1091,9 +1100,6 @@ public:
                 }
                 fallCounter = std::chrono::milliseconds(0); // Reset fall counter
             }
-
-            // Update the particles
-            updateParticles();
 
             timeSinceLastFrame = currentTime;
         }
@@ -1736,6 +1742,7 @@ private:
     
     // Modify the clearLines function to handle scoring and leveling up
     void clearLines() {
+        std::lock_guard<std::mutex> particleLock(particleMutex);  // Lock the particle system to avoid concurrent access
         std::lock_guard<std::mutex> lock(boardMutex);  // Lock during line clearing
         
         int linesClearedInThisTurn = 0;
