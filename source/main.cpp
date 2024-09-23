@@ -1543,36 +1543,37 @@ private:
         int previousRotation = currentTetrimino.rotation;
         int previousX = currentTetrimino.x;
         int previousY = currentTetrimino.y;
-
+    
         // Update rotation (Clockwise: -1, Counterclockwise: +1)
         currentTetrimino.rotation = (currentTetrimino.rotation + direction + 4) % 4;
-
+    
         // Determine which wall kick table to use (I-piece vs others)
         const auto& kicks = (currentTetrimino.type == 0) ? wallKicksI : wallKicksJLSTZ;
-
+    
         // Try all the wall kick possibilities
         for (int i = 0; i < 5; ++i) {
             int kickIndex = (direction > 0) ? previousRotation : currentTetrimino.rotation;
             const auto& kick = kicks[kickIndex][i];
-
+    
             // Apply the kick
             currentTetrimino.x = previousX + kick.first;
             currentTetrimino.y = previousY + kick.second;
-
-            // Check if the new position is valid
-            if (isPositionValid(currentTetrimino, board)) {
+    
+            // Ensure y is within bounds and check if the new position is valid
+            if (currentTetrimino.y >= -1 && isPositionValid(currentTetrimino, board)) {
                 // Reset lock delay to prevent immediate locking after rotation
                 lockDelayCounter = std::chrono::milliseconds(0);  // Reset lock delay
                 lastRotationOrMoveTime = std::chrono::system_clock::now();  // Update last rotation time
                 return;
             }
         }
-
+    
         // Revert if no valid rotation was found
         currentTetrimino.rotation = previousRotation;
         currentTetrimino.x = previousX;
         currentTetrimino.y = previousY;
     }
+
 
 
 
