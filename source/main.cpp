@@ -38,6 +38,10 @@
 #include <ctime>
 #include <chrono>
 #include <random>
+#include <mutex>
+
+std::mutex boardMutex;  // Declare a mutex for board access
+
 
 bool isGameOver = false;
 
@@ -197,27 +201,31 @@ bool isPositionValid(const Tetrimino& tet, const std::array<std::array<int, BOAR
         for (int j = 0; j < 4; ++j) {
             int rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
             
+            // Only check if there's a block in the current cell
             if (tetriminoShapes[tet.type][rotatedIndex] != 0) {
                 int x = tet.x + j;
                 int y = tet.y + i;
 
-                // Ensure x is within board width
-                if (x < 0 || x >= BOARD_WIDTH) {
-                    return false; // Out of horizontal bounds
+                // Ensure x is within board width and y is within valid bounds
+                if (x < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT) {
+                    return false;  // Invalid position, out of bounds
                 }
 
-                // Skip checking if y < 0, as this is above the visible board
-                if (y >= 0) {
-                    // Check if the space is occupied by another block
-                    if (y >= BOARD_HEIGHT || board[y][x] != 0) {
-                        return false; // The space is occupied or out of bounds vertically
-                    }
+                // If the block is above the top of the board, skip checking
+                if (y < 0) {
+                    continue;  // Skip rows above the visible board
+                }
+
+                // Check if the space is occupied by another block
+                if (board[y][x] != 0) {
+                    return false;  // The space is occupied
                 }
             }
         }
     }
-    return true; // Valid position
+    return true;  // Position is valid
 }
+
 
 
 
@@ -229,7 +237,7 @@ int calculateDropDistance(const Tetrimino& tet, const std::array<std::array<int,
         tempTetrimino.y += 1;  // Move down one row
         dropDistance++;
     }
-    return dropDistance - 1;  // Subtract 1 because the last move was invalid
+    return std::max(dropDistance - 1, 0);  // Ensure the dropDistance doesn't go negative
 }
 
 
@@ -357,6 +365,8 @@ public:
 
         renderer->drawString("", false, 74, offsetY + 74, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
 
+        std::lock_guard<std::mutex> lock(boardMutex);  // Lock the mutex while rendering
+        
         // Draw the current Tetrimino
         drawTetrimino(renderer, *currentTetrimino, offsetX, offsetY);
 
@@ -369,25 +379,25 @@ public:
         
             // Define total duration of the fade effect
             float fadeDuration = 2000.0f;  // Total time in milliseconds (2 seconds)
-            float fadeAlpha = 0.0f;
+            //float fadeAlpha = 0.0f;
         
             // Map the elapsed time to a sine wave for smooth fade-in and fade-out
             if (elapsedTime.count() < fadeDuration) {
                 // Calculate the progress as a value between 0 and 1
-                float progress = elapsedTime.count() / fadeDuration;
+                //float progress = elapsedTime.count() / fadeDuration;
         
                 // Use sine wave function: sin(π * progress) for a smooth transition
-                fadeAlpha = sinf(M_PI * progress);  // This smoothly maps alpha from 0 to 1 and back to 0
+                //fadeAlpha = sinf(M_PI * progress);  // This smoothly maps alpha from 0 to 1 and back to 0
             } else {
                 // Hide the text after the animation completes
                 showText = false;
             }
         
             // Ensure fadeAlpha is clamped between 0 and 1
-            fadeAlpha = std::min(std::max(fadeAlpha, 0.0f), 1.0f);  // Clamp fadeAlpha between 0 and 1
+            //fadeAlpha = std::min(std::max(fadeAlpha, 0.0f), 1.0f);  // Clamp fadeAlpha between 0 and 1
         
             // Scale fadeAlpha to the RGBA4444 range (0 to 15)
-            u8 alphaValue = static_cast<u8>(fadeAlpha * 15);  // Scale alpha smoothly from 0 to 15
+            //u8 alphaValue = static_cast<u8>(fadeAlpha * 15);  // Scale alpha smoothly from 0 to 15
         
             // Calculate horizontal center of the text
             int textX;
@@ -430,7 +440,7 @@ public:
             } else {
                 textX = (this->getWidth() - renderer->calculateStringWidth(linesClearedText.c_str(), 24)) / 2;
                 // Draw the text normally for any other string
-                tsl::Color textColor(0xF, 0xF, 0xF, alphaValue);  // Use fadeAlpha to adjust the transparency
+                tsl::Color textColor(0xF, 0xF, 0xF, 0xF);  // Use fadeAlpha to adjust the transparency
                 renderer->drawString(linesClearedText.c_str(), false, textX, boardCenterY, 24, textColor);
             }
         }
@@ -584,12 +594,14 @@ private:
         renderer->drawRect(posX - padding, posY + borderHeight, borderWidth + 2 * padding, borderThickness, tsl::Color({0xF, 0xF, 0xF, 0xF}));
         renderer->drawRect(posX - padding, posY - padding, borderThickness, borderHeight + 2 * padding, tsl::Color({0xF, 0xF, 0xF, 0xF}));
         renderer->drawRect(posX + borderWidth, posY - padding, borderThickness, borderHeight + 2 * padding, tsl::Color({0xF, 0xF, 0xF, 0xF}));
-    
+        
+        int index;
+
         // Calculate the bounding box of the next Tetrimino (minX, maxX, minY, maxY)
         int minX = 4, maxX = -1, minY = 4, maxY = -1;
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                int index = getRotatedIndex(nextTetrimino->type, i, j, nextTetrimino->rotation);
+                index = getRotatedIndex(nextTetrimino->type, i, j, nextTetrimino->rotation);
                 if (tetriminoShapes[nextTetrimino->type][index] != 0) {
                     if (j < minX) minX = j;
                     if (j > maxX) maxX = j;
@@ -606,23 +618,28 @@ private:
         // Correctly calculate the offset to center the Tetrimino
         int offsetX = std::ceil((borderWidth - tetriminoWidth) / 2. -2.);
         int offsetY = std::ceil((borderHeight - tetriminoHeight) / 2. -2.);
-    
+        
+        tsl::Color outerColor(0), innerColor(0);
+        
+        int blockWidth, blockHeight;
+        int drawX, drawY;
+
         // Draw the next Tetrimino within the preview area
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                int index = getRotatedIndex(nextTetrimino->type, i, j, nextTetrimino->rotation);
+                index = getRotatedIndex(nextTetrimino->type, i, j, nextTetrimino->rotation);
                 if (tetriminoShapes[nextTetrimino->type][index] != 0) {
-                    int blockWidth = _w / 2;
-                    int blockHeight = _h / 2;
-                    int drawX = posX + (j - minX) * blockWidth + padding + offsetX;
-                    int drawY = posY + (i - minY) * blockHeight + padding + offsetY;
+                    blockWidth = _w / 2;
+                    blockHeight = _h / 2;
+                    drawX = posX + (j - minX) * blockWidth + padding + offsetX;
+                    drawY = posY + (i - minY) * blockHeight + padding + offsetY;
     
                     // Draw the outer block of the Tetrimino
                     renderer->drawRect(drawX, drawY, blockWidth, blockHeight, tetriminoColors[nextTetrimino->type]);
     
                     // Calculate a darker shade for the inner block
-                    tsl::Color outerColor = tetriminoColors[nextTetrimino->type];
-                    tsl::Color innerColor = {
+                    outerColor = tetriminoColors[nextTetrimino->type];
+                    innerColor = {
                         static_cast<u8>(outerColor.r * 0.7), // Darker red
                         static_cast<u8>(outerColor.g * 0.7), // Darker green
                         static_cast<u8>(outerColor.b * 0.7), // Darker blue
@@ -655,10 +672,11 @@ private:
         renderer->drawRect(posX + borderWidth, posY - padding, borderThickness, borderHeight + 2 * padding, tsl::Color({0xF, 0xF, 0xF, 0xF}));
     
         if (storedTetrimino->type != -1) {
+            int index;
             int minX = 4, maxX = -1, minY = 4, maxY = -1;
             for (int i = 0; i < 4; ++i) {
                 for (int j = 0; j < 4; ++j) {
-                    int index = getRotatedIndex(storedTetrimino->type, i, j, storedTetrimino->rotation);
+                    index = getRotatedIndex(storedTetrimino->type, i, j, storedTetrimino->rotation);
                     if (tetriminoShapes[storedTetrimino->type][index] != 0) {
                         minX = std::min(minX, j);
                         maxX = std::max(maxX, j);
@@ -673,28 +691,33 @@ private:
     
             int offsetX = std::ceil((borderWidth - tetriminoWidth) / 2. -2.);
             int offsetY = std::ceil((borderHeight - tetriminoHeight) / 2. -2.);
-    
+            
+            tsl::Color outerColor(0), innerColor(0);
+
+            int blockWidth, blockHeight;
+            int drawX, drawY;
+
             // Draw the stored Tetrimino in the preview area
             for (int i = 0; i < 4; ++i) {
                 for (int j = 0; j < 4; ++j) {
-                    int index = getRotatedIndex(storedTetrimino->type, i, j, storedTetrimino->rotation);
+                    index = getRotatedIndex(storedTetrimino->type, i, j, storedTetrimino->rotation);
                     if (tetriminoShapes[storedTetrimino->type][index] != 0) {
-                        int blockWidth = _w / 2;
-                        int blockHeight = _h / 2;
-                        int drawX = posX + (j - minX) * blockWidth + padding + offsetX;
-                        int drawY = posY + (i - minY) * blockHeight + padding + offsetY;
-    
+                        blockWidth = _w / 2;
+                        blockHeight = _h / 2;
+                        drawX = posX + (j - minX) * blockWidth + padding + offsetX;
+                        drawY = posY + (i - minY) * blockHeight + padding + offsetY;
+                        
                         renderer->drawRect(drawX, drawY, blockWidth, blockHeight, tetriminoColors[storedTetrimino->type]);
-    
+                        
                         // Inner block shading
-                        tsl::Color outerColor = tetriminoColors[storedTetrimino->type];
-                        tsl::Color innerColor = {
+                        outerColor = tetriminoColors[storedTetrimino->type];
+                        innerColor = {
                             static_cast<u8>(outerColor.r * 0.7),
                             static_cast<u8>(outerColor.g * 0.7),
                             static_cast<u8>(outerColor.b * 0.7),
                             static_cast<u8>(outerColor.a)
                         };
-    
+                        
                         int innerPadding = 2;
                         renderer->drawRect(drawX + innerPadding, drawY + innerPadding, blockWidth - 2 * innerPadding, blockHeight - 2 * innerPadding, innerColor);
                     }
@@ -748,24 +771,25 @@ public:
         offset = 6;
         countOffset = 0;
         
-        
+
         if (!tsl::disableColorfulLogo) {
             auto currentTimeCount = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
             float progress;
             static auto dynamicLogoRGB1 = tsl::hexToRGB444Floats("#6929ff");
             static auto dynamicLogoRGB2 = tsl::hexToRGB444Floats("#fff429");
+            tsl::Color highlightColor(0);
             for (char letter : m_title) {
                 counter = (2 * M_PI * (fmod(currentTimeCount/4.0, 2.0) + countOffset) / 2.0);
                 progress = std::sin(3.0 * (counter - (2.0 * M_PI / 3.0))); // Faster transition from -1 to 1 and back in the remaining 1/3
                 
-                tsl::highlightColor = {
+                highlightColor = {
                     static_cast<u8>((std::get<0>(dynamicLogoRGB2) - std::get<0>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<0>(dynamicLogoRGB1)),
                     static_cast<u8>((std::get<1>(dynamicLogoRGB2) - std::get<1>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<1>(dynamicLogoRGB1)),
                     static_cast<u8>((std::get<2>(dynamicLogoRGB2) - std::get<2>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<2>(dynamicLogoRGB1)),
                     15
                 };
                 
-                renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, a(tsl::highlightColor));
+                renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, a(highlightColor));
                 x += renderer->calculateStringWidth(std::string(1, letter), fontSize);
                 countOffset -= 0.2F;
             }
@@ -971,21 +995,23 @@ public:
     }
 
     void updateParticles() {
+        std::lock_guard<std::mutex> lock(boardMutex);  // Safeguard particle updates
+        
         for (auto it = particles.begin(); it != particles.end();) {
             it->x += it->vx;
             it->y += it->vy;
             it->alpha -= 0.04f;  // Fade out the particle
             it->life -= 0.02f;   // Decrease the lifespan
     
-            // If the particle is still alive and visible, keep it
-            if (it->life > 0 && it->alpha > 0) {
-                ++it;
-            } else {
-                // Remove the dead particle
+            // Remove dead particles
+            if (it->life <= 0 || it->alpha <= 0) {
                 it = particles.erase(it);
+            } else {
+                ++it;
             }
         }
     }
+
 
 
     virtual void update() override {
@@ -1564,32 +1590,11 @@ private:
         return x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT;
     }
     
-    bool isPositionValid(const Tetrimino& tet, const std::array<std::array<int, BOARD_WIDTH>, BOARD_HEIGHT>& board) {
-        for (int i = 0; i < 4; ++i) {
-            for (int j = 0; j < 4; ++j) {
-                int rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
-                
-                if (tetriminoShapes[tet.type][rotatedIndex] != 0) {
-                    int x = tet.x + j;
-                    int y = tet.y + i;
-    
-                    // Ensure x is within board width and y is within board height
-                    if (x < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT) {
-                        return false; // Out of horizontal bounds or below the board
-                    }
-                    // Check if the block is within a valid area of the board (y >= 0) and not occupied
-                    if (y >= 0 && board[y][x] != 0) {
-                        return false; // The space is occupied by another block
-                    }
-                }
-            }
-        }
-        return true; // Valid position
-    }
-
 
 
     void placeTetrimino() {
+        bool pieceAboveTop = false;  // Track if any part of the piece is above the top of the board
+    
         // Place the Tetrimino on the board
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
@@ -1599,12 +1604,24 @@ private:
                     int x = currentTetrimino.x + j;
                     int y = currentTetrimino.y + i;
     
+                    // If any part of the piece is above the top of the board (y < 0)
+                    if (y < 0) {
+                        pieceAboveTop = true;
+                        continue;  // Skip placing this block
+                    }
+    
                     // Only place the block if y is within the board (y >= 0)
                     if (y >= 0) {
-                        board[y][x] = currentTetrimino.type + 1; // Place the block
+                        board[y][x] = currentTetrimino.type + 1;  // Place the block
                     }
                 }
             }
+        }
+    
+        // If any part of the piece was above the top of the board, trigger game over
+        if (pieceAboveTop) {
+            tetrisElement->gameOver = true;
+            return;  // Early return to prevent further processing
         }
     
         // Award points for soft drops (apply accumulated points)
@@ -1620,6 +1637,7 @@ private:
         // Reset the swap flag after placing a Tetrimino
         hasSwapped = false;
     }
+
 
 
     
