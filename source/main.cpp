@@ -404,7 +404,7 @@ public:
 
         static std::chrono::time_point<std::chrono::steady_clock> gameOverStartTime; // Track the time when game over starts
         static bool gameOverTextDisplayed = false; // Track if the game over text is displayed after the delay
-        
+
         // Draw score and status text
         if (gameOver || paused) {
             // Draw a semi-transparent black overlay over the board
@@ -1369,6 +1369,8 @@ public:
         // Reset tetriminos
         currentTetrimino = Tetrimino(rand() % 7);
         nextTetrimino = Tetrimino(rand() % 7);
+        nextTetrimino1 = Tetrimino(rand() % 7);
+        nextTetrimino2 = Tetrimino(rand() % 7);
         
         // Reset the stored tetrimino
         storedTetrimino = Tetrimino(-1); // Reset stored piece to no stored state
