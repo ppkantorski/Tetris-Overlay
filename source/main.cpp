@@ -392,6 +392,39 @@ public:
         // Update the particles
         updateParticles(offsetX, offsetY);
         drawParticles(renderer, offsetX, offsetY);
+        
+
+
+        // Draw score and status text
+        if (gameOver || paused) {
+            // Draw a semi-transparent black overlay over the board
+            renderer->drawRect(offsetX, offsetY, boardWidthInPixels, boardHeightInPixels, tsl::Color({0x0, 0x0, 0x0, 0xA}));
+        
+            // Calculate the center position of the board
+            int centerX = offsetX + (BOARD_WIDTH * _w) / 2;
+            int centerY = offsetY + (BOARD_HEIGHT * _h) / 2;
+        
+            if (gameOver) {
+                // Set the text color to red
+                tsl::Color redColor = tsl::Color({0xF, 0x0, 0x0, 0xF});
+        
+                // Calculate text width to center the text
+                int textWidth = renderer->calculateStringWidth("Game Over", 24);
+                
+                // Draw "Game Over" at the center of the board
+                renderer->drawString("Game Over", false, centerX - textWidth / 2, centerY, 24, redColor);
+            } else if (paused) {
+                // Set the text color to green
+                tsl::Color greenColor = tsl::Color({0x0, 0xF, 0x0, 0xF});
+        
+                // Calculate text width to center the text
+                int textWidth = renderer->calculateStringWidth("Paused", 24);
+        
+                // Draw "Paused" at the center of the board
+                renderer->drawString("Paused", false, centerX - textWidth / 2, centerY, 24, greenColor);
+            }
+        }
+        
 
         // Draw the lines-cleared text with smooth sine wave-based color effect for each character when the text is "Tetris"
         if (showText) {
@@ -508,42 +541,6 @@ public:
         
             // Disable scissoring after drawing
             renderer->disableScissoring();
-        }
-
-
-        
-        
-        
-
-
-        // Draw score and status text
-        if (gameOver || paused) {
-            // Draw a semi-transparent black overlay over the board
-            renderer->drawRect(offsetX, offsetY, boardWidthInPixels, boardHeightInPixels, tsl::Color({0x0, 0x0, 0x0, 0xA}));
-        
-            // Calculate the center position of the board
-            int centerX = offsetX + (BOARD_WIDTH * _w) / 2;
-            int centerY = offsetY + (BOARD_HEIGHT * _h) / 2;
-        
-            if (gameOver) {
-                // Set the text color to red
-                tsl::Color redColor = tsl::Color({0xF, 0x0, 0x0, 0xF});
-        
-                // Calculate text width to center the text
-                int textWidth = renderer->calculateStringWidth("Game Over", 24);
-                
-                // Draw "Game Over" at the center of the board
-                renderer->drawString("Game Over", false, centerX - textWidth / 2, centerY, 24, redColor);
-            } else if (paused) {
-                // Set the text color to green
-                tsl::Color greenColor = tsl::Color({0x0, 0xF, 0x0, 0xF});
-        
-                // Calculate text width to center the text
-                int textWidth = renderer->calculateStringWidth("Paused", 24);
-        
-                // Draw "Paused" at the center of the board
-                renderer->drawString("Paused", false, centerX - textWidth / 2, centerY, 24, greenColor);
-            }
         }
         
     }
