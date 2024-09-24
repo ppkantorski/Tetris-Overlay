@@ -400,7 +400,7 @@ public:
         // Draw score and status text
         if (gameOver || paused) {
             // Draw a semi-transparent black overlay over the board
-            renderer->drawRect(offsetX, offsetY, boardWidthInPixels, boardHeightInPixels, tsl::Color({0x0, 0x0, 0x0, 0x8}));
+            renderer->drawRect(offsetX, offsetY, boardWidthInPixels, boardHeightInPixels, tsl::Color({0x0, 0x0, 0x0, 0xA}));
         
             // Calculate the center position of the board
             int centerX = offsetX + (BOARD_WIDTH * _w) / 2;
@@ -413,6 +413,7 @@ public:
                 // Calculate text width to center the text
                 int textWidth = renderer->calculateStringWidth("Game Over", 24);
                 
+                //renderer->drawRect(offsetX, centerY - 22, boardWidthInPixels, 26, tsl::Color({0x0, 0x0, 0x0, 0x8}));
                 // Draw "Game Over" at the center of the board
                 renderer->drawString("Game Over", false, centerX - textWidth / 2, centerY, 24, redColor);
             } else if (paused) {
@@ -436,7 +437,7 @@ public:
             int centerX = offsetX + (BOARD_WIDTH * _w) / 2;
             int centerY = offsetY + (BOARD_HEIGHT * _h) / 2;
 
-            renderer->drawRect(offsetX, centerY - 22, boardWidthInPixels, 26, tsl::Color({0x0, 0x0, 0x0, 0x6}));
+            renderer->drawRect(offsetX, centerY - 22, boardWidthInPixels, 26, tsl::Color({0x0, 0x0, 0x0, 0x5}));
 
             // Calculate text width to center the text
             std::string scoreLine = "+" + std::to_string(linesClearedScore);
@@ -1274,7 +1275,65 @@ public:
         }
     }
 
+    void createImpactParticles(int dropDistance) {
+        std::lock_guard<std::mutex> lock(particleMutex);  // Lock to ensure safe access to the particle list
+        
+        // Cap the maximum drop distance to avoid excessive velocity
+        float velocityFactor = std::min(dropDistance / 10.0f, 2.0f);  // Adjust the divisor and cap for desired effect
     
+        // Set minimum and maximum horizontal and vertical velocities
+        float minVelocity = 0.5f;  // Minimum velocity value
+        float maxHorizontalVelocity = 2.0f * velocityFactor;
+        float maxVerticalVelocity = 4.0f * velocityFactor;
+    
+        // Calculate lifespan based on drop distance with a minimum of 0.2 and a maximum of 0.6
+        float lifespanFactor = std::clamp(dropDistance / 20.0f, 0.2f, 0.6f);
+    
+        // Calculate the number of particles based on drop distance, clamped between 2 and 5 particles
+        int particleCount = std::clamp(2 + dropDistance / 5, 2, 5);
+
+        int bottomRow;
+        int rotatedIndex;
+        int blockX, blockY;
+        Particle particle;
+    
+        // Iterate over each column of the Tetrimino to find the bottom edge
+        for (int j = 0; j < 4; ++j) {
+            bottomRow = -1;
+    
+            for (int i = 0; i < 4; ++i) {
+                rotatedIndex = getRotatedIndex(currentTetrimino.type, i, j, currentTetrimino.rotation);
+                if (tetriminoShapes[currentTetrimino.type][rotatedIndex] != 0) {
+                    bottomRow = i;  // Keep track of the bottom-most row for this column
+                }
+            }
+    
+            // If a bottom block is found, generate particles
+            if (bottomRow != -1) {
+                blockX = currentTetrimino.x + j;
+                blockY = currentTetrimino.y + bottomRow;
+    
+                // Create several particles falling from this block
+                for (int p = 0; p < particleCount; ++p) {  // Adjust this number to control particle count
+                    // Generate horizontal and vertical velocities, clamped between min and max
+                    float horizontalVelocity = std::clamp((rand() % 100 / 50.0f - 1.0f) * velocityFactor, -maxHorizontalVelocity, maxHorizontalVelocity);
+                    float verticalVelocity = std::clamp((rand() % 100 / 50.0f) * (2.0f * velocityFactor), minVelocity, maxVerticalVelocity);
+    
+                    particle = {
+                        static_cast<float>(blockX * _w + rand() % _w),  // X-position within the block
+                        static_cast<float>(blockY * _h + _h),           // Y-position at the bottom of the block
+                        horizontalVelocity,                             // Clamped horizontal velocity
+                        verticalVelocity,                               // Clamped downward velocity
+                        lifespanFactor,                                 // Lifespan based on drop distance, clamped between 0.2 and 0.6
+                        1.0f                                            // Alpha (fully visible)
+                    };
+                    particles.push_back(particle);
+                }
+            }
+        }
+    }
+
+
 
     void hardDrop() {
         // Calculate how far the piece will fall
@@ -1284,7 +1343,9 @@ public:
         // Award points for hard drop (e.g., 2 points per row)
         int hardDropScore = hardDropDistance * 2;
         tetrisElement->setScore(tetrisElement->getScore() + hardDropScore);
-    
+        
+        createImpactParticles(hardDropDistance);
+
         // Place the piece and reset drop distance trackers
         placeTetrimino();
         clearLines();
