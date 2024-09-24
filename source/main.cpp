@@ -378,6 +378,12 @@ public:
         
         drawNextTwoTetriminos(renderer, offsetX + BOARD_WIDTH * _w + 12, offsetY + BORDER_HEIGHT + 12);
 
+        renderer->drawString("", false, offsetX - 85, offsetY + (BORDER_HEIGHT + 12)*0.5 +1, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+
+        renderer->drawString("", false, offsetX + BOARD_WIDTH * _w + 64, offsetY + (BORDER_HEIGHT + 12)*0.5, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        renderer->drawString("", false, offsetX + BOARD_WIDTH * _w + 64, offsetY + (BORDER_HEIGHT + 12)*1.5, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        renderer->drawString("", false, offsetX + BOARD_WIDTH * _w + 64, offsetY + (BORDER_HEIGHT + 12)*2.5, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+
         // Draw the number of lines cleared
         std::ostringstream linesStr;
         linesStr << "Lines\n" << linesCleared;
