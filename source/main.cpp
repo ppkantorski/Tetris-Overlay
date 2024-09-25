@@ -491,7 +491,7 @@ public:
             float totalDuration = scrollInDuration + pauseDuration + scrollOutDuration;
             
             // Calculate board dimensions
-            int boardWidthInPixels = BOARD_WIDTH * _w;
+            int boardWidthInPixels = BOARD_WIDTH * _w +2; // +2 to account for padding
             int boardHeightInPixels = BOARD_HEIGHT * _h;
             int offsetX = (this->getWidth() - boardWidthInPixels) / 2;  // Horizontal offset to center the board
             int offsetY = (this->getHeight() - boardHeightInPixels) / 2; // Vertical offset to center the board
@@ -516,10 +516,10 @@ public:
                 
                 int prefixWidth = renderer->calculateStringWidth(prefix.c_str(), regularFontSize);
                 int tetrisWidth = renderer->calculateStringWidth(remainingText.c_str(), dynamicFontSize);
-                totalTextWidth = prefixWidth + tetrisWidth + 11;
+                totalTextWidth = prefixWidth + tetrisWidth + 9;
                 
             } else if (linesClearedText == "Tetris") {
-                totalTextWidth = renderer->calculateStringWidth("Tetris", dynamicFontSize) + 14;
+                totalTextWidth = renderer->calculateStringWidth("Tetris", dynamicFontSize) + 12;
                 
             } else if (linesClearedText.find("\n") != std::string::npos) {
                 // Handle multiline text (e.g., "T-Spin\nSingle")
