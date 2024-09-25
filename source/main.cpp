@@ -310,6 +310,7 @@ public:
         renderer->drawRect(offsetX + BOARD_WIDTH * _w, offsetY - frameThickness, frameThickness, BOARD_HEIGHT * _h + 2 * frameThickness, frameColor);
 
 
+        int innerPadding = 4; // Adjust this to control the inner rectangle size
 
         // Draw the board
         int drawX, drawY;
@@ -337,7 +338,7 @@ public:
 
         
                     // Draw the inner block (smaller rectangle)
-                    int innerPadding = 4; // Adjust this to control the inner rectangle size
+                    
                     renderer->drawRect(drawX + innerPadding, drawY + innerPadding, _w - 2 * innerPadding, _h - 2 * innerPadding, innerColor);
 
                     // Highlight at the top-left corner (lighter shade)
@@ -347,8 +348,8 @@ public:
                         static_cast<u8>(std::min(innerColor.b + 0x2, 0xF)),
                         static_cast<u8>(outerColor.a) // Ensure this is within the range of 0-15
                     };
-                    int highlightPadding = 4;
-                    renderer->drawRect(drawX + highlightPadding, drawY + highlightPadding, _w / 4, _h / 4, highlightColor);
+                    
+                    renderer->drawRect(drawX + innerPadding, drawY + innerPadding, _w / 4, _h / 4, highlightColor);
                 }
             }
         }
@@ -525,9 +526,10 @@ public:
                 std::vector<std::string> lines = splitString(linesClearedText, "\n");
                 int maxLineWidth = 0;
                 
+                int lineWidth;
                 // Calculate the maximum width among the lines
                 for (const std::string &line : lines) {
-                    int lineWidth = renderer->calculateStringWidth(line.c_str(), regularFontSize);
+                    lineWidth = renderer->calculateStringWidth(line.c_str(), regularFontSize);
                     if (lineWidth > maxLineWidth) {
                         maxLineWidth = lineWidth;
                     }
@@ -751,7 +753,9 @@ private:
         tsl::Color highlightColor(0);
         int rotatedIndex;
         int x, y;
-        
+
+        int innerPadding = 4;  // Adjust padding for a more balanced 3D look
+
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
                 rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
@@ -780,7 +784,7 @@ private:
                         static_cast<u8>(color.b * 0x9 / 0xF),
                         static_cast<u8>(color.a)  // Maintain the alpha channel
                     };
-                    int innerPadding = 4;  // Adjust padding for a more balanced 3D look
+                    
                     renderer->drawRect(x + innerPadding, y + innerPadding, _w - 2 * innerPadding, _h - 2 * innerPadding, innerColor);
     
                     // Add a 3D highlight at the top-left corner for light effect
@@ -790,8 +794,8 @@ private:
                         static_cast<u8>(std::min(innerColor.b + 0x2, 0xF)),
                         static_cast<u8>(color.a)  // Keep alpha unchanged
                     };
-                    int highlightPadding = 4;  // Add a small highlight in the top-left corner
-                    renderer->drawRect(x + highlightPadding, y + highlightPadding, _w / 4, _h / 4, highlightColor);
+
+                    renderer->drawRect(x + innerPadding, y + innerPadding, _w / 4, _h / 4, highlightColor);
                 }
             }
         }
@@ -842,8 +846,8 @@ private:
             static_cast<u8>(std::min(innerColor.b + 0x2, 0xF)),
             static_cast<u8>(color.a)
         };
-        int highlightPadding = 2;
-        renderer->drawRect(x + highlightPadding, y + highlightPadding, width / 4, height / 4, highlightColor);
+        
+        renderer->drawRect(x + innerPadding, y + innerPadding, width / 4, height / 4, highlightColor);
     }
     
     // Helper function to draw preview frame (borders and background)
