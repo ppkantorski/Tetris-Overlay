@@ -308,7 +308,7 @@ public:
         // Draw the board
         int drawX, drawY;
         tsl::Color innerColor(0), outerColor(0);
-
+        tsl::Color highlightColor(0);
         for (int y = 0; y < BOARD_HEIGHT; ++y) {
             for (int x = 0; x < BOARD_WIDTH; ++x) {
                 if ((*board)[y][x] != 0) {
@@ -333,6 +333,16 @@ public:
                     // Draw the inner block (smaller rectangle)
                     int innerPadding = 4; // Adjust this to control the inner rectangle size
                     renderer->drawRect(drawX + innerPadding, drawY + innerPadding, _w - 2 * innerPadding, _h - 2 * innerPadding, innerColor);
+
+                    // Highlight at the top-left corner (lighter shade)
+                    highlightColor = {
+                        static_cast<u8>(std::min(innerColor.r + 0x2, 0xF)),  // Lighter shade for highlight
+                        static_cast<u8>(std::min(innerColor.g + 0x2, 0xF)),
+                        static_cast<u8>(std::min(innerColor.b + 0x2, 0xF)),
+                        static_cast<u8>(outerColor.a) // Ensure this is within the range of 0-15
+                    };
+                    int highlightPadding = 4;
+                    renderer->drawRect(drawX + highlightPadding, drawY + highlightPadding, _w / 4, _h / 4, highlightColor);
                 }
             }
         }
@@ -344,30 +354,6 @@ public:
         highScore.str(std::string());
         highScore << "High Score\n" << maxHighScore;
         renderer->drawString(highScore.str().c_str(), false, 268, 124, 20, tsl::Color({0xF, 0xF, 0xF, 0xF}));
-
-        // Update and draw particles
-        //tsl::Color particleColor(0);
-        //int particleDrawX, particleDrawY;
-        //
-        //// Update and draw particles (only handle the drawing part here)
-        //auto particlesCopy = particles;
-        //for (const auto& particle : particlesCopy) {
-        //    if (particle.life > 0 && particle.alpha > 0) {
-        //        // Calculate particle position relative to the board
-        //        particleDrawX = offsetX + static_cast<int>(particle.x);
-        //        particleDrawY = offsetY + static_cast<int>(particle.y);
-        //        
-        //        // Generate a random color for each particle in RGB4444 format
-        //        particleColor = tsl::Color({
-        //            static_cast<u8>(rand() % 16),  // Random Red component (4 bits, 0x0 to 0xF)
-        //            static_cast<u8>(rand() % 16),  // Random Green component (4 bits, 0x0 to 0xF)
-        //            static_cast<u8>(rand() % 16),  // Random Blue component (4 bits, 0x0 to 0xF)
-        //            static_cast<u8>(particle.alpha * 15)  // Alpha component (4 bits, scaled to 0x0 to 0xF)
-        //        });
-        //
-        //        renderer->drawRect(particleDrawX, particleDrawY, 4, 4, particleColor);
-        //    }
-        //}
 
 
         // Draw the stored Tetrimino
@@ -650,10 +636,6 @@ public:
             // Disable scissoring after drawing
             renderer->disableScissoring();
         }
-
-        
-        
-
     }
 
     virtual void layout(u16 parentX, u16 parentY, u16 parentWidth, u16 parentHeight) override {
@@ -760,8 +742,10 @@ private:
     void drawSingleTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tet, int offsetX, int offsetY, bool isGhost) {
         tsl::Color color(0);
         tsl::Color innerColor(0);
+        tsl::Color highlightColor(0);
         int rotatedIndex;
         int x, y;
+        
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
                 rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
@@ -773,28 +757,40 @@ private:
                     if (tet.y + i < 0) {
                         continue;
                     }
-                    
+    
                     color = tetriminoColors[tet.type];
                     if (isGhost) {
                         // Make the ghost piece semi-transparent
                         color.a = static_cast<u8>(color.a * 0.3);  // Adjust transparency for ghost piece
                     }
-                    
+    
                     // Draw the outer block
                     renderer->drawRect(x, y, _w, _h, color);
-                    
-                    // Draw the inner block (darker shade)
+    
+                    // Calculate and draw the inner block (darker shade for 3D effect)
                     innerColor = {
-                        static_cast<u8>(color.r * 0.7),
-                        static_cast<u8>(color.g * 0.7),
-                        static_cast<u8>(color.b * 0.7),
-                        static_cast<u8>(color.a)
+                        static_cast<u8>(color.r * 0x9 / 0xF),  // Slightly darker, closer to 60% brightness
+                        static_cast<u8>(color.g * 0x9 / 0xF),
+                        static_cast<u8>(color.b * 0x9 / 0xF),
+                        static_cast<u8>(color.a)  // Maintain the alpha channel
                     };
-                    renderer->drawRect(x + 4, y + 4, _w - 8, _h - 8, innerColor);
+                    int innerPadding = 4;  // Adjust padding for a more balanced 3D look
+                    renderer->drawRect(x + innerPadding, y + innerPadding, _w - 2 * innerPadding, _h - 2 * innerPadding, innerColor);
+    
+                    // Add a 3D highlight at the top-left corner for light effect
+                    highlightColor = {
+                        static_cast<u8>(std::min(innerColor.r + 0x2, 0xF)),  // Increase brightness more subtly (max out at 0xF)
+                        static_cast<u8>(std::min(innerColor.g + 0x2, 0xF)),
+                        static_cast<u8>(std::min(innerColor.b + 0x2, 0xF)),
+                        static_cast<u8>(color.a)  // Keep alpha unchanged
+                    };
+                    int highlightPadding = 4;  // Add a small highlight in the top-left corner
+                    renderer->drawRect(x + highlightPadding, y + highlightPadding, _w / 4, _h / 4, highlightColor);
                 }
             }
         }
     }
+
 
 
     void drawTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tet, int offsetX, int offsetY) {
@@ -810,90 +806,39 @@ private:
         drawSingleTetrimino(renderer, tet, offsetX, offsetY, false);  // `false` indicates normal piece
     }
 
-    // Method to draw the next Tetrimino
-    void drawNextTetrimino(tsl::gfx::Renderer* renderer, int posX, int posY) {
-        int borderWidth = _w * 2 + 8;  // Preview area width
-        int borderHeight = _h * 2 + 8; // Preview area height
-        int borderThickness = 2;       // Thickness of the border
-        int padding = 2;               // Padding inside the border
-    
-        // Draw the frame for the next Tetrimino preview
-        renderer->drawRect(posX - padding - borderThickness, posY - padding - borderThickness,
-                           borderWidth + 2 * padding + 2 * borderThickness, borderHeight + 2 * padding + 2 * borderThickness, 
-                           tsl::Color({0x0, 0x0, 0x0, 0x8})); // Semi-transparent background
-    
-        // Draw the white border
-        renderer->drawRect(posX - padding, posY - padding, borderWidth + 2 * padding, borderThickness, tsl::Color({0xF, 0xF, 0xF, 0xF}));
-        renderer->drawRect(posX - padding, posY + borderHeight, borderWidth + 2 * padding, borderThickness, tsl::Color({0xF, 0xF, 0xF, 0xF}));
-        renderer->drawRect(posX - padding, posY - padding, borderThickness, borderHeight + 2 * padding, tsl::Color({0xF, 0xF, 0xF, 0xF}));
-        renderer->drawRect(posX + borderWidth, posY - padding, borderThickness, borderHeight + 2 * padding, tsl::Color({0xF, 0xF, 0xF, 0xF}));
-        
-        int index;
-
-        // Calculate the bounding box of the next Tetrimino (minX, maxX, minY, maxY)
-        int minX = 4, maxX = -1, minY = 4, maxY = -1;
-        for (int i = 0; i < 4; ++i) {
-            for (int j = 0; j < 4; ++j) {
-                index = getRotatedIndex(nextTetrimino->type, i, j, nextTetrimino->rotation);
-                if (tetriminoShapes[nextTetrimino->type][index] != 0) {
-                    if (j < minX) minX = j;
-                    if (j > maxX) maxX = j;
-                    if (i < minY) minY = i;
-                    if (i > maxY) maxY = i;
-                }
-            }
-        }
-    
-        // Calculate the width and height of the next Tetrimino in blocks
-        float tetriminoWidth = (maxX - minX + 1) * (_w / 2);
-        float tetriminoHeight = (maxY - minY + 1) * (_h / 2);
-    
-        // Correctly calculate the offset to center the Tetrimino
-        int offsetX = std::ceil((borderWidth - tetriminoWidth) / 2. -2.);
-        int offsetY = std::ceil((borderHeight - tetriminoHeight) / 2. -2.);
-        
-        tsl::Color outerColor(0), innerColor(0);
-        
-        int blockWidth, blockHeight;
-        int drawX, drawY;
-
-        // Draw the next Tetrimino within the preview area
-        for (int i = 0; i < 4; ++i) {
-            for (int j = 0; j < 4; ++j) {
-                index = getRotatedIndex(nextTetrimino->type, i, j, nextTetrimino->rotation);
-                if (tetriminoShapes[nextTetrimino->type][index] != 0) {
-                    blockWidth = _w / 2;
-                    blockHeight = _h / 2;
-                    drawX = posX + (j - minX) * blockWidth + padding + offsetX;
-                    drawY = posY + (i - minY) * blockHeight + padding + offsetY;
-    
-                    // Draw the outer block of the Tetrimino
-                    renderer->drawRect(drawX, drawY, blockWidth, blockHeight, tetriminoColors[nextTetrimino->type]);
-    
-                    // Calculate a darker shade for the inner block
-                    outerColor = tetriminoColors[nextTetrimino->type];
-                    innerColor = {
-                        static_cast<u8>(outerColor.r * 0.7), // Darker red
-                        static_cast<u8>(outerColor.g * 0.7), // Darker green
-                        static_cast<u8>(outerColor.b * 0.7), // Darker blue
-                        static_cast<u8>(outerColor.a)
-                    };
-    
-                    // Draw the inner block (smaller rectangle)
-                    int innerPadding = 2; // Adjust inner block size with padding
-                    renderer->drawRect(drawX + innerPadding, drawY + innerPadding, blockWidth - 2 * innerPadding, blockHeight - 2 * innerPadding, innerColor);
-                }
-            }
-        }
-    }
-        
     // Constants for borders and padding
     const int BORDER_WIDTH = _w * 2 + 8;
-    const int BORDER_HEIGHT = _h * 2 + 8;
+    const int BORDER_HEIGHT = _w * 2 + 8;
     const int BORDER_THICKNESS = 2;
     const int PADDING = 2;
     const tsl::Color BACKGROUND_COLOR = {0x0, 0x0, 0x0, 0x8};
     const tsl::Color BORDER_COLOR = {0xF, 0xF, 0xF, 0xF};
+    
+    // Helper function to draw a 3D block with highlight and shadow
+    void draw3DBlock(tsl::gfx::Renderer* renderer, int x, int y, int width, int height, tsl::Color color) {
+        // Outer block color
+        renderer->drawRect(x, y, width, height, color);
+    
+        // Inner block shading (darker)
+        tsl::Color innerColor = {
+            static_cast<u8>(color.r * 0x9 / 0xF),
+            static_cast<u8>(color.g * 0x9 / 0xF),
+            static_cast<u8>(color.b * 0x9 / 0xF),
+            static_cast<u8>(color.a)
+        };
+        int innerPadding = 2;
+        renderer->drawRect(x + innerPadding, y + innerPadding, width - 2 * innerPadding, height - 2 * innerPadding, innerColor);
+    
+        // Highlight at the top-left corner (lighter)
+        tsl::Color highlightColor = {
+            static_cast<u8>(std::min(innerColor.r + 0x2, 0xF)),
+            static_cast<u8>(std::min(innerColor.g + 0x2, 0xF)),
+            static_cast<u8>(std::min(innerColor.b + 0x2, 0xF)),
+            static_cast<u8>(color.a)
+        };
+        int highlightPadding = 2;
+        renderer->drawRect(x + highlightPadding, y + highlightPadding, width / 4, height / 4, highlightColor);
+    }
     
     // Helper function to draw preview frame (borders and background)
     void drawPreviewFrame(tsl::gfx::Renderer* renderer, int posX, int posY) {
@@ -911,12 +856,11 @@ private:
         renderer->drawRect(posX + BORDER_WIDTH, posY - PADDING, BORDER_THICKNESS, BORDER_HEIGHT + 2 * PADDING, BORDER_COLOR);
     }
     
-    // Helper function to draw a single Tetrimino with centering logic
-    void drawCenteredTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tetrimino, int posX, int posY) {
-        int minX = 4, maxX = -1, minY = 4, maxY = -1;
+    // Helper function to calculate Tetrimino bounding box
+    void calculateTetriminoBounds(const Tetrimino& tetrimino, int& minX, int& maxX, int& minY, int& maxY) {
+        minX = 4; maxX = -1; minY = 4; maxY = -1;
         int index;
-    
-        // Calculate bounding box of the Tetrimino
+        
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
                 index = getRotatedIndex(tetrimino.type, i, j, tetrimino.rotation);
@@ -928,6 +872,12 @@ private:
                 }
             }
         }
+    }
+    
+    // Helper function to draw a centered Tetrimino
+    void drawCenteredTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tetrimino, int posX, int posY) {
+        int minX, maxX, minY, maxY;
+        calculateTetriminoBounds(tetrimino, minX, maxX, minY, maxY);
     
         // Calculate width and height of the Tetrimino
         float tetriminoWidth = (maxX - minX + 1) * (_w / 2);
@@ -936,33 +886,33 @@ private:
         // Center the Tetrimino in the preview area
         int offsetX = std::ceil((BORDER_WIDTH - tetriminoWidth) / 2. - 2.);
         int offsetY = std::ceil((BORDER_HEIGHT - tetriminoHeight) / 2. - 2.);
+        
+        int blockWidth, blockHeight, drawX, drawY;
     
         // Draw each block of the Tetrimino
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                index = getRotatedIndex(tetrimino.type, i, j, tetrimino.rotation);
+                int index = getRotatedIndex(tetrimino.type, i, j, tetrimino.rotation);
                 if (tetriminoShapes[tetrimino.type][index] != 0) {
-                    int blockWidth = _w / 2;
-                    int blockHeight = _h / 2;
-                    int drawX = posX + (j - minX) * blockWidth + PADDING + offsetX;
-                    int drawY = posY + (i - minY) * blockHeight + PADDING + offsetY;
+                    blockWidth = _w / 2;
+                    blockHeight = _h / 2;
+                    drawX = posX + (j - minX) * blockWidth + PADDING + offsetX;
+                    drawY = posY + (i - minY) * blockHeight + PADDING + offsetY;
     
-                    // Draw the outer block
-                    renderer->drawRect(drawX, drawY, blockWidth, blockHeight, tetriminoColors[tetrimino.type]);
-    
-                    // Calculate and draw the inner block (darker color)
-                    tsl::Color outerColor = tetriminoColors[tetrimino.type];
-                    tsl::Color innerColor = {
-                        static_cast<u8>(outerColor.r * 0.7),
-                        static_cast<u8>(outerColor.g * 0.7),
-                        static_cast<u8>(outerColor.b * 0.7),
-                        static_cast<u8>(outerColor.a)
-                    };
-                    int innerPadding = 2;
-                    renderer->drawRect(drawX + innerPadding, drawY + innerPadding, blockWidth - 2 * innerPadding, blockHeight - 2 * innerPadding, innerColor);
+                    // Use the reusable function to draw the 3D block
+                    draw3DBlock(renderer, drawX, drawY, blockWidth, blockHeight, tetriminoColors[tetrimino.type]);
                 }
             }
         }
+    }
+    
+    // Updated method to draw the next Tetrimino with 3D effect
+    void drawNextTetrimino(tsl::gfx::Renderer* renderer, int posX, int posY) {
+        // Draw the frame for the next Tetrimino preview
+        drawPreviewFrame(renderer, posX, posY);
+    
+        // Draw the centered next Tetrimino
+        drawCenteredTetrimino(renderer, *nextTetrimino, posX, posY);
     }
     
     // Updated method to draw the next two Tetriminos
@@ -978,78 +928,15 @@ private:
         drawCenteredTetrimino(renderer, *nextTetrimino2, posX, posY2);
     }
     
-
-    // Method to draw the stored Tetrimino (similar to drawNextTetrimino)
+    // Updated method to draw the stored Tetrimino
     void drawStoredTetrimino(tsl::gfx::Renderer* renderer, int posX, int posY) {
-        int borderWidth = _w * 2 + 8;
-        int borderHeight = _h * 2 + 8;
-        int borderThickness = 2;
-        int padding = 2;
-    
-        // Draw the preview frame
-        renderer->drawRect(posX - padding - borderThickness, posY - padding - borderThickness,
-                           borderWidth + 2 * padding + 2 * borderThickness, borderHeight + 2 * padding + 2 * borderThickness, 
-                           tsl::Color({0x0, 0x0, 0x0, 0x8}));
-    
-        renderer->drawRect(posX - padding, posY - padding, borderWidth + 2 * padding, borderThickness, tsl::Color({0xF, 0xF, 0xF, 0xF}));
-        renderer->drawRect(posX - padding, posY + borderHeight, borderWidth + 2 * padding, borderThickness, tsl::Color({0xF, 0xF, 0xF, 0xF}));
-        renderer->drawRect(posX - padding, posY - padding, borderThickness, borderHeight + 2 * padding, tsl::Color({0xF, 0xF, 0xF, 0xF}));
-        renderer->drawRect(posX + borderWidth, posY - padding, borderThickness, borderHeight + 2 * padding, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        drawPreviewFrame(renderer, posX, posY);
     
         if (storedTetrimino->type != -1) {
-            int index;
-            int minX = 4, maxX = -1, minY = 4, maxY = -1;
-            for (int i = 0; i < 4; ++i) {
-                for (int j = 0; j < 4; ++j) {
-                    index = getRotatedIndex(storedTetrimino->type, i, j, storedTetrimino->rotation);
-                    if (tetriminoShapes[storedTetrimino->type][index] != 0) {
-                        minX = std::min(minX, j);
-                        maxX = std::max(maxX, j);
-                        minY = std::min(minY, i);
-                        maxY = std::max(maxY, i);
-                    }
-                }
-            }
-    
-            float tetriminoWidth = (maxX - minX + 1) * (_w / 2);
-            float tetriminoHeight = (maxY - minY + 1) * (_h / 2);
-    
-            int offsetX = std::ceil((borderWidth - tetriminoWidth) / 2. -2.);
-            int offsetY = std::ceil((borderHeight - tetriminoHeight) / 2. -2.);
-            
-            tsl::Color outerColor(0), innerColor(0);
-
-            int blockWidth, blockHeight;
-            int drawX, drawY;
-
-            // Draw the stored Tetrimino in the preview area
-            for (int i = 0; i < 4; ++i) {
-                for (int j = 0; j < 4; ++j) {
-                    index = getRotatedIndex(storedTetrimino->type, i, j, storedTetrimino->rotation);
-                    if (tetriminoShapes[storedTetrimino->type][index] != 0) {
-                        blockWidth = _w / 2;
-                        blockHeight = _h / 2;
-                        drawX = posX + (j - minX) * blockWidth + padding + offsetX;
-                        drawY = posY + (i - minY) * blockHeight + padding + offsetY;
-                        
-                        renderer->drawRect(drawX, drawY, blockWidth, blockHeight, tetriminoColors[storedTetrimino->type]);
-                        
-                        // Inner block shading
-                        outerColor = tetriminoColors[storedTetrimino->type];
-                        innerColor = {
-                            static_cast<u8>(outerColor.r * 0.7),
-                            static_cast<u8>(outerColor.g * 0.7),
-                            static_cast<u8>(outerColor.b * 0.7),
-                            static_cast<u8>(outerColor.a)
-                        };
-                        
-                        int innerPadding = 2;
-                        renderer->drawRect(drawX + innerPadding, drawY + innerPadding, blockWidth - 2 * innerPadding, blockHeight - 2 * innerPadding, innerColor);
-                    }
-                }
-            }
+            drawCenteredTetrimino(renderer, *storedTetrimino, posX, posY);
         }
     }
+    
     
     
 
@@ -1373,8 +1260,8 @@ public:
         previousClearWasTetris = false;
         previousClearWasTSpin = false;
         backToBackCount = 1;
-        
-        
+
+
         // Clear the board
         for (auto& row : board) {
             row.fill(0);
