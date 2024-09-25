@@ -215,9 +215,14 @@ bool isPositionValid(const Tetrimino& tet, const std::array<std::array<int, BOAR
                 int x = tet.x + j;
                 int y = tet.y + i;
 
-                // Check if x and y are within the bounds of the board
-                if (x < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT) {
+                // Check if x and y are within the bounds of the board horizontally
+                if (x < 0 || x >= BOARD_WIDTH) {
                     return false;  // Invalid if out of bounds
+                }
+
+                // Allow blocks above the board but not below the bottom
+                if (y >= BOARD_HEIGHT) {
+                    return false;  // Invalid if out of bounds vertically
                 }
 
                 // If the block is above the visible board, ignore it
@@ -234,6 +239,7 @@ bool isPositionValid(const Tetrimino& tet, const std::array<std::array<int, BOAR
     }
     return true;  // Position is valid
 }
+
 
 
 
@@ -1852,11 +1858,11 @@ private:
     
         const auto& kicks = (currentTetrimino.type == 0) ? wallKicksI : wallKicksJLSTZ;
     
-        lastWallKickApplied = false; // Reset the wall kick flag before trying
+        lastWallKickApplied = false;  // Reset the wall kick flag before trying
     
         bool rotationSuccessful = false;
     
-        // Try all the wall kick possibilities
+        // Try all the standard wall kick possibilities
         for (int i = 0; i < 5; ++i) {
             int kickIndex = (direction > 0) ? previousRotation : currentTetrimino.rotation;
             const auto& kick = kicks[kickIndex][i];
@@ -1874,6 +1880,20 @@ private:
             }
         }
     
+        // If the standard kicks fail, try smaller offsets
+        if (!rotationSuccessful) {
+            const std::array<std::pair<int, int>, 3> smallKicks = {{ {0, 1}, {1, 0}, {-1, 0} }};
+            for (const auto& kick : smallKicks) {
+                currentTetrimino.x = previousX + kick.first;
+                currentTetrimino.y = previousY + kick.second;
+                if (isPositionValid(currentTetrimino, board)) {
+                    rotationSuccessful = true;
+                    lastWallKickApplied = true;  // Wall kick was applied
+                    break;
+                }
+            }
+        }
+    
         // If the rotation failed, revert to the previous state
         if (!rotationSuccessful) {
             currentTetrimino.rotation = previousRotation;
@@ -1881,12 +1901,13 @@ private:
             currentTetrimino.y = previousY;
         }
     
-        // Reset lock delay counter only if the rotation was successful and the rotation state changed
+        // Reset lock delay counter if the rotation was successful and the rotation state changed
         if (rotationSuccessful && currentTetrimino.rotation != previousRotation) {
             lockDelayCounter = std::chrono::milliseconds(0);
             lastRotationOrMoveTime = std::chrono::steady_clock::now();  // Update the last rotation time
         }
     }
+
 
 
     
@@ -1896,14 +1917,14 @@ private:
 
     bool isMiniTSpin() {
         if (currentTetrimino.type != 5) return false; // Only T piece can T-Spin
-        
+    
         // Mini T-Spins often occur when a rotation involves a wall kick but isn't surrounded as a full T-spin.
-        // For simplicity, this is detecting the situation where only two corners are blocked, and a wall kick occurs.
-        return !isTSpin() && performedWallKick();
+        return !isTSpin() && lastWallKickApplied;
     }
     
     bool isTSpin() {
         if (currentTetrimino.type != 5) return false; // Only T piece can T-Spin
+    
         // Check corners around the T piece center
         int centerX = currentTetrimino.x + 1;
         int centerY = currentTetrimino.y + 1;
@@ -1915,7 +1936,8 @@ private:
         if (!isWithinBounds(centerX - 1, centerY + 1) || board[centerY + 1][centerX - 1] != 0) blockedCorners++;
         if (!isWithinBounds(centerX + 1, centerY + 1) || board[centerY + 1][centerX + 1] != 0) blockedCorners++;
     
-        return blockedCorners >= 3; // T-Spin if 3 or more corners are blocked
+        // A T-Spin occurs if 3 or more corners are blocked
+        return blockedCorners >= 3 && lastWallKickApplied;
     }
     
     bool isWithinBounds(int x, int y) {
