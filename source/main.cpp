@@ -1367,6 +1367,14 @@ public:
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
         isGameOver = false;
+
+        // Reset variables related to game state
+        lastWallKickApplied = false;
+        previousClearWasTetris = false;
+        previousClearWasTSpin = false;
+        backToBackCount = 1;
+        
+        
         // Clear the board
         for (auto& row : board) {
             row.fill(0);
@@ -1599,7 +1607,7 @@ public:
         previousClearWasTetris = json_is_true(json_object_get(root, "previousClearWasTetris"));  // New
         previousClearWasTSpin = json_is_true(json_object_get(root, "previousClearWasTSpin"));  // New
         backToBackCount = json_integer_value(json_object_get(root, "backToBackCount"));  // New
-        
+
         // Load current Tetrimino
         json_t* currentTetriminoJson = json_object_get(root, "currentTetrimino");
         currentTetrimino.type = json_integer_value(json_object_get(currentTetriminoJson, "type"));
