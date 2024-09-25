@@ -53,7 +53,7 @@ struct Particle {
     float alpha;     // Transparency (fades out)
 };
 
-//const int MAX_PARTICLES = 800;
+
 std::vector<Particle> particles;
 
 
@@ -1804,37 +1804,45 @@ private:
     bool move(int dx, int dy) {
         std::lock_guard<std::mutex> lock(boardMutex);  // Lock to prevent race conditions
         bool success = false;
+    
+        // Attempt to move the Tetrimino
         currentTetrimino.x += dx;
         currentTetrimino.y += dy;
     
+        // Check if the new position is valid
         if (!isPositionValid(currentTetrimino, board)) {
+            // Revert the move if invalid
             currentTetrimino.x -= dx;
             currentTetrimino.y -= dy;
         } else {
             success = true;
     
+            // If the piece moved down
             if (dy > 0) {
-                // Piece moved down, accumulate points for soft drops
-                totalSoftDropDistance += dy;
-                lockDelayMoves = 0;  // Reset the horizontal move counter when moving down
-            } else if (dx != 0) {
-                // Horizontal movement, reset lock delay only if the piece hasn't reached its maximum lock moves
+                totalSoftDropDistance += dy;  // Accumulate soft drop distance for scoring
+                lockDelayMoves = 0;  // Reset horizontal move counter on vertical movement
+                lockDelayCounter = std::chrono::milliseconds(0);  // Reset the lock delay on downward movement
+            }
+            // If the piece moved horizontally
+            else if (dx != 0) {
                 if (isOnGround()) {
+                    // If on the ground, allow limited horizontal moves to reset the lock delay
                     if (lockDelayMoves < maxLockDelayMoves) {
                         lockDelayCounter = std::chrono::milliseconds(0);  // Reset lock delay
-                        lastRotationOrMoveTime = std::chrono::steady_clock::now();  // Update last move time
-                        lockDelayMoves++;  // Increment the number of times the piece has moved horizontally
+                        lastRotationOrMoveTime = std::chrono::steady_clock::now();  // Update the last move time
+                        lockDelayMoves++;  // Increment the number of allowed lock delay moves
                     }
                 } else {
-                    // If not on the ground, reset lock delay normally
+                    // If not on the ground, reset the lock delay as normal
                     lockDelayCounter = std::chrono::milliseconds(0);
-                    lastRotationOrMoveTime = std::chrono::steady_clock::now();
+                    lastRotationOrMoveTime = std::chrono::steady_clock::now();  // Update the last move time
                 }
             }
         }
     
         return success;
     }
+
 
 
 
@@ -1857,60 +1865,60 @@ private:
         int previousX = currentTetrimino.x;
         int previousY = currentTetrimino.y;
     
-        // Update rotation (perform the rotation)
+        // Perform rotation
         currentTetrimino.rotation = (currentTetrimino.rotation + direction + 4) % 4;
     
         const auto& kicks = (currentTetrimino.type == 0) ? wallKicksI : wallKicksJLSTZ;
-    
-        lastWallKickApplied = false;  // Reset the wall kick flag before trying
-    
+        
+        lastWallKickApplied = false;  // Reset wall kick flag
         bool rotationSuccessful = false;
     
-        // Try all the standard wall kick possibilities
+        // Try the standard wall kicks first
         for (int i = 0; i < 5; ++i) {
             int kickIndex = (direction > 0) ? previousRotation : currentTetrimino.rotation;
             const auto& kick = kicks[kickIndex][i];
     
-            // Temporarily update the position
+            // Apply the kick
             currentTetrimino.x = previousX + kick.first;
             currentTetrimino.y = previousY + kick.second;
     
             if (isPositionValid(currentTetrimino, board)) {
                 rotationSuccessful = true;
-                if (kick.first != 0 || kick.second != 0) {
-                    lastWallKickApplied = true;  // Wall kick was applied if the kick offset is not (0, 0)
-                }
-                break;  // Found a valid kick position
+                lastWallKickApplied = (kick.first != 0 || kick.second != 0);
+                break;
             }
         }
     
-        // If the standard kicks fail, try smaller offsets
+        // If standard kicks fail, try extended kicks for tight spaces
         if (!rotationSuccessful) {
-            const std::array<std::pair<int, int>, 3> smallKicks = {{ {0, 1}, {1, 0}, {-1, 0} }};
-            for (const auto& kick : smallKicks) {
+            const std::array<std::pair<int, int>, 5> extraKicks = {{ {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2} }};
+            for (const auto& kick : extraKicks) {
                 currentTetrimino.x = previousX + kick.first;
                 currentTetrimino.y = previousY + kick.second;
+    
                 if (isPositionValid(currentTetrimino, board)) {
                     rotationSuccessful = true;
-                    lastWallKickApplied = true;  // Wall kick was applied
+                    lastWallKickApplied = true;  // Extended wall kick applied
                     break;
                 }
             }
         }
     
-        // If the rotation failed, revert to the previous state
+        // If rotation failed, revert to the previous state
         if (!rotationSuccessful) {
             currentTetrimino.rotation = previousRotation;
             currentTetrimino.x = previousX;
             currentTetrimino.y = previousY;
         }
     
-        // Reset lock delay counter if the rotation was successful and the rotation state changed
+        // Reset lock delay only if the rotation was successful and state changed
         if (rotationSuccessful && currentTetrimino.rotation != previousRotation) {
-            lockDelayCounter = std::chrono::milliseconds(0);
-            lastRotationOrMoveTime = std::chrono::steady_clock::now();  // Update the last rotation time
+            lockDelayCounter = std::chrono::milliseconds(0);  // Reset lock delay
+            lastRotationOrMoveTime = std::chrono::steady_clock::now();  // Update last move time
         }
     }
+
+
 
 
 
