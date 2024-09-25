@@ -767,7 +767,7 @@ private:
                     color = tetriminoColors[tet.type];
                     if (isGhost) {
                         // Make the ghost piece semi-transparent
-                        color.a = static_cast<u8>(color.a * 0.3);  // Adjust transparency for ghost piece
+                        color.a = static_cast<u8>(color.a * 0.4);  // Adjust transparency for ghost piece
                     }
     
                     // Draw the outer block
