@@ -326,7 +326,7 @@ public:
                         static_cast<u8>(outerColor.r * 0.7), // Darker red
                         static_cast<u8>(outerColor.g * 0.7), // Darker green
                         static_cast<u8>(outerColor.b * 0.7), // Darker blue
-                        static_cast<u8>(outerColor.a) // Ensure this is within the range of 0-255
+                        static_cast<u8>(outerColor.a) // Ensure this is within the range of 0-15
                     };
 
         
@@ -523,7 +523,7 @@ public:
                 
                 int prefixWidth = renderer->calculateStringWidth(prefix.c_str(), regularFontSize);
                 int tetrisWidth = renderer->calculateStringWidth(remainingText.c_str(), dynamicFontSize);
-                totalTextWidth = prefixWidth + tetrisWidth + 14;
+                totalTextWidth = prefixWidth + tetrisWidth + 11;
                 
             } else if (linesClearedText == "Tetris") {
                 totalTextWidth = renderer->calculateStringWidth("Tetris", dynamicFontSize) + 14;
@@ -1517,6 +1517,12 @@ public:
         json_object_set_new(root, "level", json_integer(tetrisElement->getLevel()));
         json_object_set_new(root, "hasSwapped", json_boolean(hasSwapped));
     
+        // Save additional variables
+        json_object_set_new(root, "lastWallKickApplied", json_boolean(lastWallKickApplied));  // New
+        json_object_set_new(root, "previousClearWasTetris", json_boolean(previousClearWasTetris));  // New
+        json_object_set_new(root, "previousClearWasTSpin", json_boolean(previousClearWasTSpin));  // New
+        json_object_set_new(root, "backToBackCount", json_integer(backToBackCount));  // New
+
         // Save current Tetrimino
         json_t* currentTetriminoJson = json_object();
         json_object_set_new(currentTetriminoJson, "type", json_integer(currentTetrimino.type));
@@ -1577,7 +1583,7 @@ public:
         // Load general game state
         const char* scoreStr = json_string_value(json_object_get(root, "score"));
         const char* maxHighScoreStr = json_string_value(json_object_get(root, "maxHighScore"));
-    
+        
         if (scoreStr) tetrisElement->setScore(std::stoull(scoreStr));
         if (maxHighScoreStr) TetrisElement::maxHighScore = std::stoull(maxHighScoreStr);
         
@@ -1587,7 +1593,13 @@ public:
         tetrisElement->setLinesCleared(json_integer_value(json_object_get(root, "linesCleared")));
         tetrisElement->setLevel(json_integer_value(json_object_get(root, "level")));
         hasSwapped = json_is_true(json_object_get(root, "hasSwapped"));
-    
+        
+        // Load additional variables
+        lastWallKickApplied = json_is_true(json_object_get(root, "lastWallKickApplied"));  // New
+        previousClearWasTetris = json_is_true(json_object_get(root, "previousClearWasTetris"));  // New
+        previousClearWasTSpin = json_is_true(json_object_get(root, "previousClearWasTSpin"));  // New
+        backToBackCount = json_integer_value(json_object_get(root, "backToBackCount"));  // New
+        
         // Load current Tetrimino
         json_t* currentTetriminoJson = json_object_get(root, "currentTetrimino");
         currentTetrimino.type = json_integer_value(json_object_get(currentTetriminoJson, "type"));
@@ -1823,7 +1835,7 @@ private:
     bool lastWallKickApplied = false;
     bool previousClearWasTetris = false; // Track if the previous clear was a Tetris
     bool previousClearWasTSpin = false;  // Track if the previous clear was a T-Spin
-
+    int backToBackCount = 1;
 
     // Function to adjust the fall speed based on the current level
     //void adjustFallSpeed() {
@@ -2159,7 +2171,7 @@ private:
         
 
             // Track the back-to-back chain count
-            static int backToBackCount = 1;
+            //static int backToBackCount = 1;
             if (isBackToBack) {
                 backToBackBonus = 1.5f;  // 50% bonus for back-to-back Tetrises or T-Spins
                 backToBackCount++;  // Increment back-to-back count
