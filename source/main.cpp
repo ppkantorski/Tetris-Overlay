@@ -1661,31 +1661,40 @@ public:
         // Handle down movement with DAS and ARR for soft dropping
         if (keysHeld & KEY_DOWN) {
             if (!downHeld) {
-                // First press
-                moved = move(0, 1);
-                lastDownMove = currentTime;
-                downHeld = true;
-                downARR = false; // Reset ARR phase
+                // Check if the piece is on the floor and lock it immediately
+                if (isOnFloor()) {
+                    hardDrop();
+                } else {
+                    // First press
+                    moved = move(0, 1);
+                    lastDownMove = currentTime;
+                    downHeld = true;
+                    downARR = false; // Reset ARR phase
+                }
 
             } else {
                 // DAS check
                 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastDownMove).count();
                 if (!downARR && elapsed >= DAS) {
-                    // Once DAS is reached, start ARR
-                    moved = move(0, 1);
-                    lastDownMove = currentTime;
-                    downARR = true;
+                    if (isOnFloor()) {
+                        hardDrop();
+                    } else {
+                        // Once DAS is reached, start ARR
+                        moved = move(0, 1);
+                        lastDownMove = currentTime;
+                        downARR = true;
+                    }
                 } else if (downARR && elapsed >= ARR) {
-                    // Auto-repeat after ARR interval
-                    moved = move(0, 1);
-                    lastDownMove = currentTime;
+                    if (isOnFloor()) {
+                        hardDrop();
+                    } else {
+                        // Auto-repeat after ARR interval
+                        moved = move(0, 1);
+                        lastDownMove = currentTime;
+                    }
                 }
             }
-            
-            // Check if the piece is on the floor and lock it immediately
-            if (isOnFloor()) {
-                hardDrop();
-            }
+
         } else {
             downHeld = false;
         }
@@ -1860,7 +1869,7 @@ private:
             }
     
             // Horizontal movement logic remains the same
-            if (dx != 0) {
+            else if (dx != 0) {
                 if (isOnFloor()) {
                     if (lockDelayMoves < maxLockDelayMoves) {
                         lockDelayCounter = std::chrono::milliseconds(0);
@@ -1957,7 +1966,7 @@ private:
         }
     
         // Reset lock delay only if the rotation was successful and state changed
-        if (rotationSuccessful && currentTetrimino.rotation != previousRotation) {
+        if ((rotationSuccessful && currentTetrimino.rotation != previousRotation) || currentTetrimino.type == 3) {
 
             if (isOnFloor()) {
                 if (lockDelayMoves < maxLockDelayMoves) {
