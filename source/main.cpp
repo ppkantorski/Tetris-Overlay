@@ -428,7 +428,7 @@ public:
                         // Store the time when game over was triggered
                         gameOverStartTime = std::chrono::steady_clock::now();
                     }
-    
+                    
                     // Calculate the time since game over was triggered
                     auto elapsedTime = std::chrono::steady_clock::now() - gameOverStartTime;
     
@@ -459,9 +459,11 @@ public:
                 // Draw "Paused" at the center of the board
                 renderer->drawString("Paused", false, centerX - textWidth / 2, centerY, 24, greenColor);
             }
-        } else {
+        }
+        if (!gameOver) {
             firstLoad = false;
             gameOverTextDisplayed = false;
+            gameOverStartTime = std::chrono::time_point<std::chrono::steady_clock>();
         }
         
 
@@ -1742,6 +1744,8 @@ private:
     bool previousClearWasTSpin = false;  // Track if the previous clear was a T-Spin
     int backToBackCount = 1;
 
+    bool pieceWasKickedUp = false;
+
     // Function to adjust the fall speed based on the current level
     //void adjustFallSpeed() {
     //    int minSpeed = 200; // Minimum fall speed (200 ms)
@@ -1794,12 +1798,33 @@ private:
         return std::chrono::milliseconds(fallSpeed);
     }
 
-    bool isOnGround() {
-        currentTetrimino.y += 1;  // Move the piece down by 1 row to simulate gravity
-        bool onGround = !isPositionValid(currentTetrimino, board);  // Check if moving down is possible
-        currentTetrimino.y -= 1;  // Move it back up to its original position
-        return onGround;
+    bool isOnFloor() {
+        // If the piece was kicked up, it's not on the floor
+        if (pieceWasKickedUp) {
+            return true;
+        }
+
+        int rotatedIndex;
+        int x, y;
+
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                rotatedIndex = getRotatedIndex(currentTetrimino.type, i, j, currentTetrimino.rotation);
+    
+                if (tetriminoShapes[currentTetrimino.type][rotatedIndex] != 0) {
+                    x = currentTetrimino.x + j;
+                    y = currentTetrimino.y + i;
+    
+                    // Check if it's at the bottom of the board or on top of another block
+                    if (y + 1 >= BOARD_HEIGHT || board[y + 1][x] != 0) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
+
 
     bool move(int dx, int dy) {
         std::lock_guard<std::mutex> lock(boardMutex);  // Lock to prevent race conditions
@@ -1808,7 +1833,7 @@ private:
         // Attempt to move the Tetrimino
         currentTetrimino.x += dx;
         currentTetrimino.y += dy;
-    
+        
         // Check if the new position is valid
         if (!isPositionValid(currentTetrimino, board)) {
             // Revert the move if invalid
@@ -1820,22 +1845,25 @@ private:
             // If the piece moved down
             if (dy > 0) {
                 totalSoftDropDistance += dy;  // Accumulate soft drop distance for scoring
-                lockDelayMoves = 0;  // Reset horizontal move counter on vertical movement
-                lockDelayCounter = std::chrono::milliseconds(0);  // Reset the lock delay on downward movement
+                
+                // Only reset lock delay if not recently kicked up and not on the floor
+                if (!pieceWasKickedUp) {
+                    lockDelayMoves = 0;  // Reset horizontal move counter
+                    lockDelayCounter = std::chrono::milliseconds(0);  // Reset lock delay
+                }
             }
-            // If the piece moved horizontally
-            else if (dx != 0) {
-                if (isOnGround()) {
-                    // If on the ground, allow limited horizontal moves to reset the lock delay
+    
+            // Horizontal movement logic remains the same
+            if (dx != 0) {
+                if (isOnFloor()) {
                     if (lockDelayMoves < maxLockDelayMoves) {
-                        lockDelayCounter = std::chrono::milliseconds(0);  // Reset lock delay
-                        lastRotationOrMoveTime = std::chrono::steady_clock::now();  // Update the last move time
-                        lockDelayMoves++;  // Increment the number of allowed lock delay moves
+                        lockDelayCounter = std::chrono::milliseconds(0);
+                        lastRotationOrMoveTime = std::chrono::steady_clock::now();
+                        lockDelayMoves++;
                     }
                 } else {
-                    // If not on the ground, reset the lock delay as normal
                     lockDelayCounter = std::chrono::milliseconds(0);
-                    lastRotationOrMoveTime = std::chrono::steady_clock::now();  // Update the last move time
+                    lastRotationOrMoveTime = std::chrono::steady_clock::now();
                 }
             }
         }
@@ -1871,6 +1899,7 @@ private:
         const auto& kicks = (currentTetrimino.type == 0) ? wallKicksI : wallKicksJLSTZ;
         
         lastWallKickApplied = false;  // Reset wall kick flag
+        //pieceWasKickedUp = false;     // Reset kicked-up flag
         bool rotationSuccessful = false;
     
         // Try the standard wall kicks first
@@ -1885,13 +1914,18 @@ private:
             if (isPositionValid(currentTetrimino, board)) {
                 rotationSuccessful = true;
                 lastWallKickApplied = (kick.first != 0 || kick.second != 0);
+                
+                // Check if the piece was kicked upwards
+                if (kick.second < 0) {
+                    pieceWasKickedUp = true;  // The piece was kicked up
+                }
                 break;
             }
         }
     
         // If standard kicks fail, try extended kicks for tight spaces
         if (!rotationSuccessful) {
-            const std::array<std::pair<int, int>, 5> extraKicks = {{ {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2} }};
+            const std::array<std::pair<int, int>, 7> extraKicks = {{ {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2}, {2, 0}, {-2, 0} }};
             for (const auto& kick : extraKicks) {
                 currentTetrimino.x = previousX + kick.first;
                 currentTetrimino.y = previousY + kick.second;
@@ -1899,6 +1933,11 @@ private:
                 if (isPositionValid(currentTetrimino, board)) {
                     rotationSuccessful = true;
                     lastWallKickApplied = true;  // Extended wall kick applied
+    
+                    // Check if the piece was kicked upwards
+                    if (kick.second < 0) {
+                        pieceWasKickedUp = true;  // The piece was kicked up
+                    }
                     break;
                 }
             }
@@ -1913,10 +1952,25 @@ private:
     
         // Reset lock delay only if the rotation was successful and state changed
         if (rotationSuccessful && currentTetrimino.rotation != previousRotation) {
-            lockDelayCounter = std::chrono::milliseconds(0);  // Reset lock delay
-            lastRotationOrMoveTime = std::chrono::steady_clock::now();  // Update last move time
+
+            if (isOnFloor()) {
+                if (lockDelayMoves < maxLockDelayMoves) {
+                    lockDelayCounter = std::chrono::milliseconds(0);
+                    lastRotationOrMoveTime = std::chrono::steady_clock::now();
+                    lockDelayMoves++;
+                }
+            } else {
+                lockDelayCounter = std::chrono::milliseconds(0);
+                lastRotationOrMoveTime = std::chrono::steady_clock::now();
+            }
+
+            //lockDelayCounter = std::chrono::milliseconds(0);  // Reset lock delay
+            //lastRotationOrMoveTime = std::chrono::steady_clock::now();  // Update last move time
         }
+
+
     }
+
 
 
 
@@ -1986,7 +2040,8 @@ private:
                 }
             }
         }
-    
+        pieceWasKickedUp = false;
+
         // If any part of the piece was above the top of the board, trigger game over
         if (pieceAboveTop) {
             tetrisElement->gameOver = true;
@@ -2005,6 +2060,8 @@ private:
     
         // Reset the swap flag after placing a Tetrimino
         hasSwapped = false;
+
+        
     }
 
     // Create line clear particles outside the main line-clear loop to reduce mutex locking time
