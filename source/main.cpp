@@ -1666,6 +1666,7 @@ public:
                 lastDownMove = currentTime;
                 downHeld = true;
                 downARR = false; // Reset ARR phase
+
             } else {
                 // DAS check
                 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastDownMove).count();
@@ -1679,6 +1680,11 @@ public:
                     moved = move(0, 1);
                     lastDownMove = currentTime;
                 }
+            }
+            
+            // Check if the piece is on the floor and lock it immediately
+            if (isOnFloor()) {
+                hardDrop();
             }
         } else {
             downHeld = false;
