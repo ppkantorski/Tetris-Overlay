@@ -58,7 +58,7 @@ std::vector<Particle> particles;
 
 
 // Define the Tetrimino shapes
-const std::array<std::array<int, 16>, 7> tetriminoShapes = {{
+const std::array<std::array<size_t, 16>, 7> tetriminoShapes = {{
     // I
     { 0,0,0,0,
       1,1,1,1,
@@ -140,13 +140,13 @@ const std::array<std::array<std::pair<int, int>, 5>, 4> wallKicksJLSTZ = {{
 
 // Define colors for each Tetrimino
 const std::array<tsl::Color, 7> tetriminoColors = {{
-    {0x0, 0xF, 0xF, 0xF}, // Cyan - I (R=0, G=F, B=F, A=F)
-    {0x0, 0x0, 0xF, 0xF}, // Blue - J (R=0, G=0, B=F, A=F)
+    {0x0, 0xE, 0xF, 0xF}, // Cyan - I (R=0, G=F, B=F, A=F)
+    {0x2, 0x2, 0xF, 0xF}, // Blue - J (R=0, G=0, B=F, A=F)
     {0xF, 0xA, 0x0, 0xF}, // Orange - L (R=F, G=A, B=0, A=F)
-    {0xF, 0xF, 0x0, 0xF}, // Yellow - O (R=F, G=F, B=0, A=F)
-    {0x0, 0xF, 0x0, 0xF}, // Green - S (R=0, G=F, B=0, A=F)
+    {0xE, 0xE, 0x0, 0xF}, // Yellow - O (R=F, G=F, B=0, A=F)
+    {0x0, 0xE, 0x0, 0xF}, // Green - S (R=0, G=F, B=0, A=F)
     {0x8, 0x0, 0xF, 0xF}, // Purple - T (R=8, G=0, B=F, A=F)
-    {0xF, 0x0, 0x0, 0xF}  // Red - Z (R=F, G=0, B=0, A=F)
+    {0xE, 0x0, 0x0, 0xF}  // Red - Z (R=F, G=0, B=0, A=F)
 }};
 
 // Board dimensions
@@ -299,7 +299,7 @@ public:
         // Draw the board frame
         tsl::Color frameColor = tsl::Color({0xF, 0xF, 0xF, 0xF}); // White color for frame
         int frameThickness = 2;
-    
+        
         // Top line
         renderer->drawRect(offsetX - frameThickness, offsetY - frameThickness, BOARD_WIDTH * _w + 2 * frameThickness, frameThickness, frameColor);
         // Bottom line
@@ -310,7 +310,7 @@ public:
         renderer->drawRect(offsetX + BOARD_WIDTH * _w, offsetY - frameThickness, frameThickness, BOARD_HEIGHT * _h + 2 * frameThickness, frameColor);
 
 
-        int innerPadding = 4; // Adjust this to control the inner rectangle size
+        int innerPadding = 3; // Adjust this to control the inner rectangle size
 
         // Draw the board
         int drawX, drawY;
@@ -321,38 +321,37 @@ public:
                 if ((*board)[y][x] != 0) {
                     drawX = offsetX + x * _w;
                     drawY = offsetY + y * _h;
-        
-                    // Get the color for the current block
-                    outerColor = tetriminoColors[(*board)[y][x] - 1];
-        
-                    // Draw the outer block
-                    renderer->drawRect(drawX, drawY, _w, _h, outerColor);
-        
-                    // Calculate a darker shade for the inner block
-                    innerColor = {
-                        static_cast<u8>(outerColor.r * 0.7), // Darker red
-                        static_cast<u8>(outerColor.g * 0.7), // Darker green
-                        static_cast<u8>(outerColor.b * 0.7), // Darker blue
-                        static_cast<u8>(outerColor.a) // Ensure this is within the range of 0-15
-                    };
-
-        
-                    // Draw the inner block (smaller rectangle)
                     
+                    // Get the color for the current block (this will be the inner block color)
+                    innerColor = tetriminoColors[(*board)[y][x] - 1];
+                    
+                    // Calculate a darker shade for the outer block
+                    outerColor = {
+                        static_cast<u8>(innerColor.r * 0xC / 0xF),  // Slightly darker, closer to 60% brightness
+                        static_cast<u8>(innerColor.g * 0xC / 0xF),
+                        static_cast<u8>(innerColor.b * 0xC / 0xF),
+                        static_cast<u8>(innerColor.a)  // Ensure this is within the range of 0-15
+                    };
+                    
+                    // Draw the outer block (darker color)
+                    renderer->drawRect(drawX, drawY, _w, _h, outerColor);
+                    
+                    // Draw the inner block (smaller rectangle with original color)
                     renderer->drawRect(drawX + innerPadding, drawY + innerPadding, _w - 2 * innerPadding, _h - 2 * innerPadding, innerColor);
-
-                    // Highlight at the top-left corner (lighter shade)
+                    
+                    // Highlight at the top-left corner (lighter shade for the inner block)
                     highlightColor = {
-                        static_cast<u8>(std::min(innerColor.r + 0x2, 0xF)),  // Lighter shade for highlight
-                        static_cast<u8>(std::min(innerColor.g + 0x2, 0xF)),
-                        static_cast<u8>(std::min(innerColor.b + 0x2, 0xF)),
-                        static_cast<u8>(outerColor.a) // Ensure this is within the range of 0-15
+                        static_cast<u8>(std::min(innerColor.r + 0x4, 0xF)),  // Lighter shade for highlight
+                        static_cast<u8>(std::min(innerColor.g + 0x4, 0xF)),
+                        static_cast<u8>(std::min(innerColor.b + 0x4, 0xF)),
+                        static_cast<u8>(innerColor.a) // Ensure this is within the range of 0-15
                     };
                     
                     renderer->drawRect(drawX + innerPadding, drawY + innerPadding, _w / 4, _h / 4, highlightColor);
                 }
             }
         }
+
 
         score.str(std::string());
         score << "Score\n" << getScore();
@@ -408,7 +407,7 @@ public:
         if (gameOver || paused) {
             // Draw a semi-transparent black overlay over the board
             renderer->drawRect(offsetX, offsetY, boardWidthInPixels, boardHeightInPixels, tsl::Color({0x0, 0x0, 0x0, 0xA}));
-        
+            
             // Calculate the center position of the board
             int centerX = offsetX + (BOARD_WIDTH * _w) / 2;
             int centerY = offsetY + (BOARD_HEIGHT * _h) / 2;
@@ -421,7 +420,7 @@ public:
                     gameOverTextDisplayed = true;
                     firstLoad = false;
                 }
-    
+                
                 // If the game over text has not been displayed yet, start the timer
                 if (!gameOverTextDisplayed) {
                     if (gameOverStartTime == std::chrono::time_point<std::chrono::steady_clock>()) {
@@ -431,13 +430,13 @@ public:
                     
                     // Calculate the time since game over was triggered
                     auto elapsedTime = std::chrono::steady_clock::now() - gameOverStartTime;
-    
+                    
                     // If 0.5 seconds have passed, display the "Game Over" text
                     if (elapsedTime >= std::chrono::milliseconds(500)) {
                         gameOverTextDisplayed = true;
                     }
                 }
-    
+                
                 // If the game over text is set to be displayed, draw it
                 if (gameOverTextDisplayed) {
                     // Set the text color to red
@@ -540,7 +539,7 @@ public:
             } else {
                 totalTextWidth = renderer->calculateStringWidth(linesClearedText.c_str(), regularFontSize) + 18;
             }
-        
+            
             // Handle the sliding phases
             if (elapsedTime.count() < scrollInDuration) {
                 float progress = elapsedTime.count() / scrollInDuration;
@@ -555,7 +554,7 @@ public:
                 showText = false;
                 return;
             }
-        
+            
             // Enable scissoring to clip the text at the left edge of the gameboard
             renderer->enableScissoring(0, offsetY, offsetX, boardHeightInPixels);
             
@@ -564,10 +563,10 @@ public:
             static auto dynamicLogoRGB1 = tsl::hexToRGB444Floats("#6929ff");
             static auto dynamicLogoRGB2 = tsl::hexToRGB444Floats("#fff429");
             float countOffset = 0.0f;
-        
+            
             tsl::Color highlightColor(0);
             float counter, transitionProgress;
-        
+            
             // Handle "2x Tetris" special case
             if (linesClearedText.find("x Tetris") != std::string::npos) {
                 //std::string prefix = "2x ";
@@ -577,19 +576,19 @@ public:
                 tsl::Color whiteColor(0xF, 0xF, 0xF, 0xF);
                 renderer->drawString(prefix.c_str(), false, textX, textY, regularFontSize, whiteColor);
                 textX += prefixWidth;
-        
+                
                 std::string remainingText = "Tetris";
                 for (char letter : remainingText) {
                     counter = (2 * M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
                     transitionProgress = std::sin(3.0 * (counter - (2.0 * M_PI / 3.0)));
-        
+                    
                     highlightColor = {
                         static_cast<u8>((std::get<0>(dynamicLogoRGB2) - std::get<0>(dynamicLogoRGB1)) * (transitionProgress + 1.0) / 2.0 + std::get<0>(dynamicLogoRGB1)),
                         static_cast<u8>((std::get<1>(dynamicLogoRGB2) - std::get<1>(dynamicLogoRGB1)) * (transitionProgress + 1.0) / 2.0 + std::get<1>(dynamicLogoRGB1)),
                         static_cast<u8>((std::get<2>(dynamicLogoRGB2) - std::get<2>(dynamicLogoRGB1)) * (transitionProgress + 1.0) / 2.0 + std::get<2>(dynamicLogoRGB1)),
                         0xF
                     };
-        
+                    
                     std::string charStr(1, letter);
                     int charWidth = renderer->calculateStringWidth(charStr.c_str(), dynamicFontSize);
                     renderer->drawString(charStr.c_str(), false, textX, textY, dynamicFontSize, highlightColor);
@@ -601,14 +600,14 @@ public:
                 for (char letter : linesClearedText) {
                     counter = (2 * M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
                     transitionProgress = std::sin(3.0 * (counter - (2.0 * M_PI / 3.0)));
-        
+                    
                     highlightColor = {
                         static_cast<u8>((std::get<0>(dynamicLogoRGB2) - std::get<0>(dynamicLogoRGB1)) * (transitionProgress + 1.0) / 2.0 + std::get<0>(dynamicLogoRGB1)),
                         static_cast<u8>((std::get<1>(dynamicLogoRGB2) - std::get<1>(dynamicLogoRGB1)) * (transitionProgress + 1.0) / 2.0 + std::get<1>(dynamicLogoRGB1)),
                         static_cast<u8>((std::get<2>(dynamicLogoRGB2) - std::get<2>(dynamicLogoRGB1)) * (transitionProgress + 1.0) / 2.0 + std::get<2>(dynamicLogoRGB1)),
                         0xF
                     };
-        
+                    
                     std::string charStr(1, letter);
                     int charWidth = renderer->calculateStringWidth(charStr.c_str(), dynamicFontSize);
                     renderer->drawString(charStr.c_str(), false, textX, textY, dynamicFontSize, highlightColor);
@@ -621,7 +620,7 @@ public:
                 int lineSpacing = regularFontSize + 4;
                 int totalHeight = lines.size() * lineSpacing;
                 int startY = textY - (totalHeight / 2);
-        
+                
                 // Find the maximum width
                 int maxLineWidth = 0;
                 for (const std::string &line : lines) {
@@ -630,7 +629,7 @@ public:
                         maxLineWidth = lineWidth;
                     }
                 }
-        
+                
                 // Draw each line centered based on max width
                 for (const std::string &line : lines) {
                     int lineWidth = renderer->calculateStringWidth(line.c_str(), regularFontSize);
@@ -723,16 +722,16 @@ private:
     void drawParticles(tsl::gfx::Renderer* renderer, int offsetX, int offsetY) {
         tsl::Color particleColor(0);
         int particleDrawX, particleDrawY;
-    
+        
         // Lock the particles vector while drawing to avoid race conditions
         std::lock_guard<std::mutex> lock(particleMutex);  
-    
+        
         for (const auto& particle : particles) {
             if (particle.life > 0 && particle.alpha > 0) {
                 // Calculate particle position relative to the board
                 particleDrawX = offsetX + static_cast<int>(particle.x);
                 particleDrawY = offsetY + static_cast<int>(particle.y);
-    
+                
                 // Generate a random color for each particle in RGB4444 format
                 particleColor = tsl::Color({
                     static_cast<u8>(rand() % 16),  // Random Red component (4 bits, 0x0 to 0xF)
@@ -740,7 +739,7 @@ private:
                     static_cast<u8>(rand() % 16),  // Random Blue component (4 bits, 0x0 to 0xF)
                     static_cast<u8>(particle.alpha * 15)  // Alpha component (scaled to 0x0 to 0xF)
                 });
-    
+                
                 // Draw the particle
                 renderer->drawRect(particleDrawX, particleDrawY, 4, 4, particleColor);
             }
@@ -751,59 +750,58 @@ private:
     // Helper function to draw a single Tetrimino (handles both ghost and normal rendering)
     void drawSingleTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tet, int offsetX, int offsetY, bool isGhost) {
         tsl::Color color(0);
-        tsl::Color innerColor(0);
+        tsl::Color outerColor(0);
         tsl::Color highlightColor(0);
         int rotatedIndex;
         int x, y;
-
-        int innerPadding = 4;  // Adjust padding for a more balanced 3D look
-
+        
+        int innerPadding = 3;  // Adjust padding for a more balanced 3D look
+        
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
                 rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
                 if (tetriminoShapes[tet.type][rotatedIndex] != 0) {
                     x = offsetX + (tet.x + j) * _w;
                     y = offsetY + (tet.y + i) * _h;
-    
+                    
                     // Skip rendering for blocks above the top of the visible board
                     if (tet.y + i < 0) {
                         continue;
                     }
-    
-                    color = tetriminoColors[tet.type];
+                    
+                    color = tetriminoColors[tet.type];  // The regular color for the inner block
                     if (isGhost) {
                         // Make the ghost piece semi-transparent
                         color.a = static_cast<u8>(color.a * 0.4);  // Adjust transparency for ghost piece
                     }
-    
-                    // Draw the outer block
-                    renderer->drawRect(x, y, _w, _h, color);
-    
-                    // Calculate and draw the inner block (darker shade for 3D effect)
-                    innerColor = {
-                        static_cast<u8>(color.r * 0x9 / 0xF),  // Slightly darker, closer to 60% brightness
-                        static_cast<u8>(color.g * 0x9 / 0xF),
-                        static_cast<u8>(color.b * 0x9 / 0xF),
+                    
+                    // Calculate and draw the outer block (slightly darker than the regular color)
+                    outerColor = {
+                        static_cast<u8>(color.r * 0xC / 0xF),  // Slightly darker, closer to 60% brightness
+                        static_cast<u8>(color.g * 0xC / 0xF),
+                        static_cast<u8>(color.b * 0xC / 0xF),
                         static_cast<u8>(color.a)  // Maintain the alpha channel
                     };
                     
-                    renderer->drawRect(x + innerPadding, y + innerPadding, _w - 2 * innerPadding, _h - 2 * innerPadding, innerColor);
-    
+                    // Draw the outer block (darker color)
+                    renderer->drawRect(x, y, _w, _h, outerColor);
+                    
+                    // Draw the inner block (original color)
+                    renderer->drawRect(x + innerPadding, y + innerPadding, _w - 2 * innerPadding, _h - 2 * innerPadding, color);
+                    
                     // Add a 3D highlight at the top-left corner for light effect
                     highlightColor = {
-                        static_cast<u8>(std::min(innerColor.r + 0x2, 0xF)),  // Increase brightness more subtly (max out at 0xF)
-                        static_cast<u8>(std::min(innerColor.g + 0x2, 0xF)),
-                        static_cast<u8>(std::min(innerColor.b + 0x2, 0xF)),
+                        static_cast<u8>(std::min(color.r + 0x4, 0xF)),  // Increase brightness more subtly (max out at 0xF)
+                        static_cast<u8>(std::min(color.g + 0x4, 0xF)),
+                        static_cast<u8>(std::min(color.b + 0x4, 0xF)),
                         static_cast<u8>(color.a)  // Keep alpha unchanged
                     };
-
+                    
                     renderer->drawRect(x + innerPadding, y + innerPadding, _w / 4, _h / 4, highlightColor);
                 }
             }
         }
     }
-
-
 
     void drawTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tet, int offsetX, int offsetY) {
         // Calculate the drop position for the ghost piece
@@ -828,29 +826,32 @@ private:
     
     // Helper function to draw a 3D block with highlight and shadow
     void draw3DBlock(tsl::gfx::Renderer* renderer, int x, int y, int width, int height, tsl::Color color) {
-        // Outer block color
-        renderer->drawRect(x, y, width, height, color);
-    
-        // Inner block shading (darker)
-        tsl::Color innerColor = {
-            static_cast<u8>(color.r * 0x9 / 0xF),
-            static_cast<u8>(color.g * 0x9 / 0xF),
-            static_cast<u8>(color.b * 0x9 / 0xF),
-            static_cast<u8>(color.a)
+        // Calculate outer block color (darker than the original color)
+        tsl::Color outerColor = {
+            static_cast<u8>(color.r * 0xC / 0xF),  // Slightly darker, closer to 60% brightness
+            static_cast<u8>(color.g * 0xC / 0xF),
+            static_cast<u8>(color.b * 0xC / 0xF),
+            static_cast<u8>(color.a)  // Maintain the alpha channel
         };
-        int innerPadding = 2;
-        renderer->drawRect(x + innerPadding, y + innerPadding, width - 2 * innerPadding, height - 2 * innerPadding, innerColor);
-    
-        // Highlight at the top-left corner (lighter)
+        
+        // Draw the outer block (darker color)
+        renderer->drawRect(x, y, width, height, outerColor);
+        
+        // Draw the inner block (original color)
+        int innerPadding = 1;
+        renderer->drawRect(x + innerPadding, y + innerPadding, width - 2 * innerPadding, height - 2 * innerPadding, color);
+        
+        // Highlight at the top-left corner (lighter shade)
         tsl::Color highlightColor = {
-            static_cast<u8>(std::min(innerColor.r + 0x2, 0xF)),
-            static_cast<u8>(std::min(innerColor.g + 0x2, 0xF)),
-            static_cast<u8>(std::min(innerColor.b + 0x2, 0xF)),
-            static_cast<u8>(color.a)
+            static_cast<u8>(std::min(color.r + 0x4, 0xF)),  // Slightly lighter than the original color
+            static_cast<u8>(std::min(color.g + 0x4, 0xF)),
+            static_cast<u8>(std::min(color.b + 0x4, 0xF)),
+            static_cast<u8>(color.a)  // Keep alpha unchanged
         };
         
         renderer->drawRect(x + innerPadding, y + innerPadding, width / 4, height / 4, highlightColor);
     }
+
     
     // Helper function to draw preview frame (borders and background)
     void drawPreviewFrame(tsl::gfx::Renderer* renderer, int posX, int posY) {
@@ -890,17 +891,17 @@ private:
     void drawCenteredTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tetrimino, int posX, int posY) {
         int minX, maxX, minY, maxY;
         calculateTetriminoBounds(tetrimino, minX, maxX, minY, maxY);
-    
+        
         // Calculate width and height of the Tetrimino
         float tetriminoWidth = (maxX - minX + 1) * (_w / 2);
         float tetriminoHeight = (maxY - minY + 1) * (_h / 2);
-    
+        
         // Center the Tetrimino in the preview area
         int offsetX = std::ceil((BORDER_WIDTH - tetriminoWidth) / 2. - 2.);
         int offsetY = std::ceil((BORDER_HEIGHT - tetriminoHeight) / 2. - 2.);
         
         int blockWidth, blockHeight, drawX, drawY;
-    
+        
         // Draw each block of the Tetrimino
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
@@ -930,11 +931,11 @@ private:
     // Updated method to draw the next two Tetriminos
     void drawNextTwoTetriminos(tsl::gfx::Renderer* renderer, int posX, int posY) {
         int posY2 = posY + BORDER_HEIGHT + 12;
-    
+        
         // Draw the first next Tetrimino with frame and centered logic
         drawPreviewFrame(renderer, posX, posY);
         drawCenteredTetrimino(renderer, *nextTetrimino1, posX, posY);
-    
+        
         // Draw the second next Tetrimino with frame and centered logic
         drawPreviewFrame(renderer, posX, posY2);
         drawCenteredTetrimino(renderer, *nextTetrimino2, posX, posY2);
@@ -943,15 +944,11 @@ private:
     // Updated method to draw the stored Tetrimino
     void drawStoredTetrimino(tsl::gfx::Renderer* renderer, int posX, int posY) {
         drawPreviewFrame(renderer, posX, posY);
-    
+        
         if (storedTetrimino->type != -1) {
             drawCenteredTetrimino(renderer, *storedTetrimino, posX, posY);
         }
     }
-    
-    
-    
-
     
 };
 
@@ -1694,16 +1691,16 @@ public:
                     }
                 }
             }
-
+            
         } else {
             downHeld = false;
         }
-    
+        
         // Handle hard drop with the Up key
         if (keysDown & KEY_UP) {
             hardDrop();  // Perform hard drop immediately
         }
-    
+        
         // Handle rotation inputs
         if (keysDown & KEY_A) {
             rotate(); // Rotate clockwise
@@ -1712,22 +1709,22 @@ public:
             rotateCounterclockwise(); // Rotate counterclockwise
             moved = true;
         }
-    
+        
         // Handle pause/unpause
         if (keysDown & KEY_PLUS) {
             TetrisElement::paused = !TetrisElement::paused;
         }
-    
+        
         // Reset the lock delay timer if the piece has moved or rotated
         if (moved) {
             lockDelayCounter = std::chrono::milliseconds(0);
         }
-    
+        
         return false;
     }
     
     
-
+    
 private:
     std::array<std::array<int, BOARD_WIDTH>, BOARD_HEIGHT> board{};
     Tetrimino currentTetrimino;
@@ -1840,7 +1837,6 @@ private:
         return false;
     }
 
-
     bool move(int dx, int dy) {
         std::lock_guard<std::mutex> lock(boardMutex);  // Lock to prevent race conditions
         bool success = false;
@@ -1886,10 +1882,6 @@ private:
         return success;
     }
 
-
-
-
-    
     void rotate() {
         rotatePiece(-1); // Clockwise rotation
     }
@@ -1903,71 +1895,74 @@ private:
     
     void rotatePiece(int direction) {
         std::lock_guard<std::mutex> lock(boardMutex);  // Lock the board for safe rotation
-    
+        
         int previousRotation = currentTetrimino.rotation;
         int previousX = currentTetrimino.x;
         int previousY = currentTetrimino.y;
-    
+        
         // Perform rotation
         currentTetrimino.rotation = (currentTetrimino.rotation + direction + 4) % 4;
-    
+        
         const auto& kicks = (currentTetrimino.type == 0) ? wallKicksI : wallKicksJLSTZ;
         
-        lastWallKickApplied = false;  // Reset wall kick flag
-        //pieceWasKickedUp = false;     // Reset kicked-up flag
+        lastWallKickApplied = false;  // Reset the wall kick flag
         bool rotationSuccessful = false;
-    
+        
         // Try the standard wall kicks first
         for (int i = 0; i < 5; ++i) {
             int kickIndex = (direction > 0) ? previousRotation : currentTetrimino.rotation;
             const auto& kick = kicks[kickIndex][i];
-    
+            
             // Apply the kick
             currentTetrimino.x = previousX + kick.first;
             currentTetrimino.y = previousY + kick.second;
-    
+            
             if (isPositionValid(currentTetrimino, board)) {
                 rotationSuccessful = true;
                 lastWallKickApplied = (kick.first != 0 || kick.second != 0);
                 
                 // Check if the piece was kicked upwards
                 if (kick.second < 0) {
-                    pieceWasKickedUp = true;  // The piece was kicked up
+                    pieceWasKickedUp = true;
+                } else {
+                    pieceWasKickedUp = false;
                 }
                 break;
             }
         }
-    
+        
         // If standard kicks fail, try extended kicks for tight spaces
         if (!rotationSuccessful) {
             const std::array<std::pair<int, int>, 7> extraKicks = {{ {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2}, {2, 0}, {-2, 0} }};
             for (const auto& kick : extraKicks) {
                 currentTetrimino.x = previousX + kick.first;
                 currentTetrimino.y = previousY + kick.second;
-    
+                
                 if (isPositionValid(currentTetrimino, board)) {
                     rotationSuccessful = true;
-                    lastWallKickApplied = true;  // Extended wall kick applied
-    
+                    lastWallKickApplied = true;
+                    
                     // Check if the piece was kicked upwards
                     if (kick.second < 0) {
-                        pieceWasKickedUp = true;  // The piece was kicked up
+                        pieceWasKickedUp = true;
+                    } else {
+                        pieceWasKickedUp = false;
                     }
                     break;
                 }
             }
         }
-    
+        
         // If rotation failed, revert to the previous state
         if (!rotationSuccessful) {
             currentTetrimino.rotation = previousRotation;
             currentTetrimino.x = previousX;
             currentTetrimino.y = previousY;
+            pieceWasKickedUp = false;
         }
-    
+        
         // Reset lock delay only if the rotation was successful and state changed
         if ((rotationSuccessful && currentTetrimino.rotation != previousRotation) || currentTetrimino.type == 3) {
-
             if (isOnFloor()) {
                 if (lockDelayMoves < maxLockDelayMoves) {
                     lockDelayCounter = std::chrono::milliseconds(0);
@@ -1978,19 +1973,9 @@ private:
                 lockDelayCounter = std::chrono::milliseconds(0);
                 lastRotationOrMoveTime = std::chrono::steady_clock::now();
             }
-
-            //lockDelayCounter = std::chrono::milliseconds(0);  // Reset lock delay
-            //lastRotationOrMoveTime = std::chrono::steady_clock::now();  // Update last move time
         }
-
-
     }
-
-
-
-
-
-
+    
     
     bool performedWallKick() {
         return lastWallKickApplied;  // Simply return whether the last rotation involved a wall kick
