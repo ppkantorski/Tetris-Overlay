@@ -22,7 +22,7 @@ An Ultrahand-enhanced Tesla overlay that brings classic Tetris gameplay to the o
 - **Save and Load:** Save your game progress and load previous games seamlessly.
 - **Pause and Resume:** Easily pause and resume the game without losing progress.
 - **High Score Tracking:** Tracks your highest score across sessions.
-- **In-Game Access:** Launch the overlay directly within games using the Tesla Menu.
+- **In-Game Access:** Launch the overlay directly within games using Ultrahand Overlay / Tesla Menu.
 
 ## Installation
 
