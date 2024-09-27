@@ -1258,50 +1258,47 @@ public:
     void resetGame() {
         // Create an explosion effect before resetting the game
         createCenterExplosionParticles();
-
+    
         // Delay the actual reset slightly to allow the explosion to be visible
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
-
+    
         isGameOver = false;
-
+    
         // Reset variables related to game state
         lastWallKickApplied = false;
         previousClearWasTetris = false;
         previousClearWasTSpin = false;
         backToBackCount = 1;
-
-
+    
         // Clear the board
         for (auto& row : board) {
             row.fill(0);
         }
-        
+    
         // Reset tetriminos
-        currentTetrimino = Tetrimino(rand() % 7);
+        spawnNewTetrimino();  // Spawn the first piece here
         nextTetrimino = Tetrimino(rand() % 7);
         nextTetrimino1 = Tetrimino(rand() % 7);
         nextTetrimino2 = Tetrimino(rand() % 7);
-        
+    
         // Reset the stored tetrimino
         storedTetrimino = Tetrimino(-1); // Reset stored piece to no stored state
         hasSwapped = false; // Reset swap flag
-        
+    
         // Reset score
         tetrisElement->setScore(0);
-        
+    
         // Reset linesCleared and level
         tetrisElement->setLinesCleared(0); // Reset lines cleared
         tetrisElement->setLevel(1); // Reset level to 1
-        
-        // Reset fall speed to initial state
-        //adjustFallSpeed();
-        
+    
         // Reset game over state
         tetrisElement->gameOver = false;
-        
+    
         // Unpause the game
         TetrisElement::paused = false;
     }
+
 
     
     void swapStoredTetrimino() {
