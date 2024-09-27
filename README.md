@@ -12,7 +12,7 @@
 An Ultrahand-enhanced Tesla overlay that brings classic Tetris gameplay to the overlay menu. This overlay allows for in-menu gameplay with dynamic UI elements, saving and loading of game state, and high score tracking.
 
 ## Screenshot
-[![Screenshot](.pics/screenshot_1.png)](https://gbatemp.net/threads/tetris-overlay.661021/)
+[![Screenshot](.pics/screenshot_1.png)](.pics/screenshot_1.png)
 
 ## Features
 
