@@ -1691,16 +1691,16 @@ public:
                     }
                 }
             }
-
+            
         } else {
             downHeld = false;
         }
-    
+        
         // Handle hard drop with the Up key
         if (keysDown & KEY_UP) {
             hardDrop();  // Perform hard drop immediately
         }
-    
+        
         // Handle rotation inputs
         if (keysDown & KEY_A) {
             rotate(); // Rotate clockwise
@@ -1709,22 +1709,22 @@ public:
             rotateCounterclockwise(); // Rotate counterclockwise
             moved = true;
         }
-    
+        
         // Handle pause/unpause
         if (keysDown & KEY_PLUS) {
             TetrisElement::paused = !TetrisElement::paused;
         }
-    
+        
         // Reset the lock delay timer if the piece has moved or rotated
         if (moved) {
             lockDelayCounter = std::chrono::milliseconds(0);
         }
-    
+        
         return false;
     }
     
     
-
+    
 private:
     std::array<std::array<int, BOARD_WIDTH>, BOARD_HEIGHT> board{};
     Tetrimino currentTetrimino;
@@ -1837,7 +1837,6 @@ private:
         return false;
     }
 
-
     bool move(int dx, int dy) {
         std::lock_guard<std::mutex> lock(boardMutex);  // Lock to prevent race conditions
         bool success = false;
@@ -1883,10 +1882,6 @@ private:
         return success;
     }
 
-
-
-
-    
     void rotate() {
         rotatePiece(-1); // Clockwise rotation
     }
@@ -1900,28 +1895,28 @@ private:
     
     void rotatePiece(int direction) {
         std::lock_guard<std::mutex> lock(boardMutex);  // Lock the board for safe rotation
-    
+        
         int previousRotation = currentTetrimino.rotation;
         int previousX = currentTetrimino.x;
         int previousY = currentTetrimino.y;
-    
+        
         // Perform rotation
         currentTetrimino.rotation = (currentTetrimino.rotation + direction + 4) % 4;
-    
+        
         const auto& kicks = (currentTetrimino.type == 0) ? wallKicksI : wallKicksJLSTZ;
-    
+        
         lastWallKickApplied = false;  // Reset the wall kick flag
         bool rotationSuccessful = false;
-    
+        
         // Try the standard wall kicks first
         for (int i = 0; i < 5; ++i) {
             int kickIndex = (direction > 0) ? previousRotation : currentTetrimino.rotation;
             const auto& kick = kicks[kickIndex][i];
-    
+            
             // Apply the kick
             currentTetrimino.x = previousX + kick.first;
             currentTetrimino.y = previousY + kick.second;
-    
+            
             if (isPositionValid(currentTetrimino, board)) {
                 rotationSuccessful = true;
                 lastWallKickApplied = (kick.first != 0 || kick.second != 0);
@@ -1935,18 +1930,18 @@ private:
                 break;
             }
         }
-    
+        
         // If standard kicks fail, try extended kicks for tight spaces
         if (!rotationSuccessful) {
             const std::array<std::pair<int, int>, 7> extraKicks = {{ {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2}, {2, 0}, {-2, 0} }};
             for (const auto& kick : extraKicks) {
                 currentTetrimino.x = previousX + kick.first;
                 currentTetrimino.y = previousY + kick.second;
-    
+                
                 if (isPositionValid(currentTetrimino, board)) {
                     rotationSuccessful = true;
                     lastWallKickApplied = true;
-    
+                    
                     // Check if the piece was kicked upwards
                     if (kick.second < 0) {
                         pieceWasKickedUp = true;
@@ -1957,7 +1952,7 @@ private:
                 }
             }
         }
-    
+        
         // If rotation failed, revert to the previous state
         if (!rotationSuccessful) {
             currentTetrimino.rotation = previousRotation;
@@ -1965,7 +1960,7 @@ private:
             currentTetrimino.y = previousY;
             pieceWasKickedUp = false;
         }
-    
+        
         // Reset lock delay only if the rotation was successful and state changed
         if ((rotationSuccessful && currentTetrimino.rotation != previousRotation) || currentTetrimino.type == 3) {
             if (isOnFloor()) {
@@ -1981,11 +1976,6 @@ private:
         }
     }
     
-
-
-
-
-
     
     bool performedWallKick() {
         return lastWallKickApplied;  // Simply return whether the last rotation involved a wall kick
