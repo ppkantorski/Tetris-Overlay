@@ -7,10 +7,12 @@
 [![GitHub issues](https://img.shields.io/github/issues/ppkantorski/Tetris-Overlay?color=222222)](https://github.com/ppkantorski/Tetris-Overlay/issues)
 [![GitHub stars](https://img.shields.io/github/stars/ppkantorski/Tetris-Overlay)](https://github.com/ppkantorski/Tetris-Overlay/stargazers)
 
+[![Banner](.pics/banner.png)](https://gbatemp.net/threads/tetris-overlay.661021/)
 
 An Ultrahand-enhanced Tesla overlay that brings classic Tetris gameplay to the overlay menu. This overlay allows for in-menu gameplay with dynamic UI elements, saving and loading of game state, and high score tracking.
 
-[![Screenshot_1](.pics/screenshot_1.png)](https://gbatemp.net/threads/tetris-overlay.661021/)
+## Screenshot
+[![Screenshot](.pics/screenshot.png)](https://gbatemp.net/threads/tetris-overlay.661021/)
 
 ## Features
 
@@ -74,6 +76,8 @@ An Ultrahand-enhanced Tesla overlay that brings classic Tetris gameplay to the o
 ## Contributing
 
 Contributions are welcome. Fork the repository and create a pull request, or report issues/suggestions via the [Issues](https://github.com/ppkantorski/Tetris-Overlay/issues) section.
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/X8X3VR194)
 
 ## License
 
