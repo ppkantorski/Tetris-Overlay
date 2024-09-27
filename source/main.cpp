@@ -2246,7 +2246,26 @@ private:
     void spawnNewTetrimino() {
         // Move nextTetrimino to currentTetrimino
         currentTetrimino = nextTetrimino;
-        currentTetrimino.x = BOARD_WIDTH / 2 - 2;
+        
+        int rotatedIndex;
+
+        // Calculate the width of the current Tetrimino
+        int minX = 4, maxX = -1;  // Initialize with the opposite extremes
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                rotatedIndex = getRotatedIndex(currentTetrimino.type, i, j, currentTetrimino.rotation);
+                if (tetriminoShapes[currentTetrimino.type][rotatedIndex] != 0) {
+                    if (j < minX) minX = j;
+                    if (j > maxX) maxX = j;
+                }
+            }
+        }
+    
+        // Calculate the actual width of the Tetrimino
+        int pieceWidth = maxX - minX + 1;
+    
+        // Set the X position to center the Tetrimino on the board
+        currentTetrimino.x = (BOARD_WIDTH - pieceWidth) / 2 - minX;
     
         // Move nextTetrimino1 to nextTetrimino
         nextTetrimino = nextTetrimino1;
@@ -2257,22 +2276,20 @@ private:
         // Generate a new random piece for nextTetrimino2
         nextTetrimino2 = Tetrimino(rand() % 7);
     
-        int rotatedIndex;
-    
         // Calculate the topmost row with a block to adjust the starting Y position
-        int topmostRow = 4; // Start with the assumption that the piece may be 4 rows high
+        int topmostRow = 4;  // Start with the assumption that the piece may be 4 rows high
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
                 rotatedIndex = getRotatedIndex(currentTetrimino.type, i, j, currentTetrimino.rotation);
                 if (tetriminoShapes[currentTetrimino.type][rotatedIndex] != 0) {
-                    topmostRow = std::min(topmostRow, i); // Find the topmost row with a block
-                    break; // No need to continue checking this row
+                    topmostRow = std::min(topmostRow, i);  // Find the topmost row with a block
+                    break;  // No need to continue checking this row
                 }
             }
         }
     
         // Set the initial Y position, adjusted for the topmost block
-        currentTetrimino.y = -topmostRow; // Allow the piece to start partially off-screen if necessary
+        currentTetrimino.y = -topmostRow;  // Allow the piece to start partially off-screen if necessary
     
         // Check if the new Tetrimino is in a valid position
         if (!isPositionValid(currentTetrimino, board)) {
@@ -2280,7 +2297,6 @@ private:
             tetrisElement->gameOver = true;
         }
     }
-
 
 
 
