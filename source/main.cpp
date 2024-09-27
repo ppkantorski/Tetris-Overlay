@@ -1909,9 +1909,8 @@ private:
         currentTetrimino.rotation = (currentTetrimino.rotation + direction + 4) % 4;
     
         const auto& kicks = (currentTetrimino.type == 0) ? wallKicksI : wallKicksJLSTZ;
-        
-        lastWallKickApplied = false;  // Reset wall kick flag
-        //pieceWasKickedUp = false;     // Reset kicked-up flag
+    
+        lastWallKickApplied = false;  // Reset the wall kick flag
         bool rotationSuccessful = false;
     
         // Try the standard wall kicks first
@@ -1929,7 +1928,9 @@ private:
                 
                 // Check if the piece was kicked upwards
                 if (kick.second < 0) {
-                    pieceWasKickedUp = true;  // The piece was kicked up
+                    pieceWasKickedUp = true;
+                } else {
+                    pieceWasKickedUp = false;
                 }
                 break;
             }
@@ -1944,11 +1945,13 @@ private:
     
                 if (isPositionValid(currentTetrimino, board)) {
                     rotationSuccessful = true;
-                    lastWallKickApplied = true;  // Extended wall kick applied
+                    lastWallKickApplied = true;
     
                     // Check if the piece was kicked upwards
                     if (kick.second < 0) {
-                        pieceWasKickedUp = true;  // The piece was kicked up
+                        pieceWasKickedUp = true;
+                    } else {
+                        pieceWasKickedUp = false;
                     }
                     break;
                 }
@@ -1960,11 +1963,11 @@ private:
             currentTetrimino.rotation = previousRotation;
             currentTetrimino.x = previousX;
             currentTetrimino.y = previousY;
+            pieceWasKickedUp = false;
         }
     
         // Reset lock delay only if the rotation was successful and state changed
         if ((rotationSuccessful && currentTetrimino.rotation != previousRotation) || currentTetrimino.type == 3) {
-
             if (isOnFloor()) {
                 if (lockDelayMoves < maxLockDelayMoves) {
                     lockDelayCounter = std::chrono::milliseconds(0);
@@ -1975,14 +1978,9 @@ private:
                 lockDelayCounter = std::chrono::milliseconds(0);
                 lastRotationOrMoveTime = std::chrono::steady_clock::now();
             }
-
-            //lockDelayCounter = std::chrono::milliseconds(0);  // Reset lock delay
-            //lastRotationOrMoveTime = std::chrono::steady_clock::now();  // Update last move time
         }
-
-
     }
-
+    
 
 
 
