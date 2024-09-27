@@ -140,13 +140,13 @@ const std::array<std::array<std::pair<int, int>, 5>, 4> wallKicksJLSTZ = {{
 
 // Define colors for each Tetrimino
 const std::array<tsl::Color, 7> tetriminoColors = {{
-    {0x0, 0xF, 0xF, 0xF}, // Cyan - I (R=0, G=F, B=F, A=F)
-    {0x0, 0x0, 0xF, 0xF}, // Blue - J (R=0, G=0, B=F, A=F)
+    {0x0, 0xE, 0xF, 0xF}, // Cyan - I (R=0, G=F, B=F, A=F)
+    {0x2, 0x2, 0xF, 0xF}, // Blue - J (R=0, G=0, B=F, A=F)
     {0xF, 0xA, 0x0, 0xF}, // Orange - L (R=F, G=A, B=0, A=F)
-    {0xF, 0xF, 0x0, 0xF}, // Yellow - O (R=F, G=F, B=0, A=F)
-    {0x0, 0xF, 0x0, 0xF}, // Green - S (R=0, G=F, B=0, A=F)
+    {0xE, 0xE, 0x0, 0xF}, // Yellow - O (R=F, G=F, B=0, A=F)
+    {0x0, 0xE, 0x0, 0xF}, // Green - S (R=0, G=F, B=0, A=F)
     {0x8, 0x0, 0xF, 0xF}, // Purple - T (R=8, G=0, B=F, A=F)
-    {0xF, 0x0, 0x0, 0xF}  // Red - Z (R=F, G=0, B=0, A=F)
+    {0xE, 0x0, 0x0, 0xF}  // Red - Z (R=F, G=0, B=0, A=F)
 }};
 
 // Board dimensions
@@ -322,37 +322,36 @@ public:
                     drawX = offsetX + x * _w;
                     drawY = offsetY + y * _h;
         
-                    // Get the color for the current block
-                    outerColor = tetriminoColors[(*board)[y][x] - 1];
+                    // Get the color for the current block (this will be the inner block color)
+                    innerColor = tetriminoColors[(*board)[y][x] - 1];
         
-                    // Draw the outer block
+                    // Calculate a darker shade for the outer block
+                    outerColor = {
+                        static_cast<u8>(innerColor.r * 0xC / 0xF),  // Slightly darker, closer to 60% brightness
+                        static_cast<u8>(innerColor.g * 0xC / 0xF),
+                        static_cast<u8>(innerColor.b * 0xC / 0xF),
+                        static_cast<u8>(innerColor.a)  // Ensure this is within the range of 0-15
+                    };
+        
+                    // Draw the outer block (darker color)
                     renderer->drawRect(drawX, drawY, _w, _h, outerColor);
         
-                    // Calculate a darker shade for the inner block
-                    innerColor = {
-                        static_cast<u8>(outerColor.r * 0.7), // Darker red
-                        static_cast<u8>(outerColor.g * 0.7), // Darker green
-                        static_cast<u8>(outerColor.b * 0.7), // Darker blue
-                        static_cast<u8>(outerColor.a) // Ensure this is within the range of 0-15
-                    };
-
-        
-                    // Draw the inner block (smaller rectangle)
-                    
+                    // Draw the inner block (smaller rectangle with original color)
                     renderer->drawRect(drawX + innerPadding, drawY + innerPadding, _w - 2 * innerPadding, _h - 2 * innerPadding, innerColor);
-
-                    // Highlight at the top-left corner (lighter shade)
+        
+                    // Highlight at the top-left corner (lighter shade for the inner block)
                     highlightColor = {
-                        static_cast<u8>(std::min(innerColor.r + 0x2, 0xF)),  // Lighter shade for highlight
-                        static_cast<u8>(std::min(innerColor.g + 0x2, 0xF)),
-                        static_cast<u8>(std::min(innerColor.b + 0x2, 0xF)),
-                        static_cast<u8>(outerColor.a) // Ensure this is within the range of 0-15
+                        static_cast<u8>(std::min(innerColor.r + 0x4, 0xF)),  // Lighter shade for highlight
+                        static_cast<u8>(std::min(innerColor.g + 0x4, 0xF)),
+                        static_cast<u8>(std::min(innerColor.b + 0x4, 0xF)),
+                        static_cast<u8>(innerColor.a) // Ensure this is within the range of 0-15
                     };
-                    
+        
                     renderer->drawRect(drawX + innerPadding, drawY + innerPadding, _w / 4, _h / 4, highlightColor);
                 }
             }
         }
+
 
         score.str(std::string());
         score << "Score\n" << getScore();
@@ -751,13 +750,13 @@ private:
     // Helper function to draw a single Tetrimino (handles both ghost and normal rendering)
     void drawSingleTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tet, int offsetX, int offsetY, bool isGhost) {
         tsl::Color color(0);
-        tsl::Color innerColor(0);
+        tsl::Color outerColor(0);
         tsl::Color highlightColor(0);
         int rotatedIndex;
         int x, y;
-
+    
         int innerPadding = 4;  // Adjust padding for a more balanced 3D look
-
+    
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
                 rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
@@ -770,40 +769,39 @@ private:
                         continue;
                     }
     
-                    color = tetriminoColors[tet.type];
+                    color = tetriminoColors[tet.type];  // The regular color for the inner block
                     if (isGhost) {
                         // Make the ghost piece semi-transparent
                         color.a = static_cast<u8>(color.a * 0.4);  // Adjust transparency for ghost piece
                     }
     
-                    // Draw the outer block
-                    renderer->drawRect(x, y, _w, _h, color);
-    
-                    // Calculate and draw the inner block (darker shade for 3D effect)
-                    innerColor = {
-                        static_cast<u8>(color.r * 0x9 / 0xF),  // Slightly darker, closer to 60% brightness
-                        static_cast<u8>(color.g * 0x9 / 0xF),
-                        static_cast<u8>(color.b * 0x9 / 0xF),
+                    // Calculate and draw the outer block (slightly darker than the regular color)
+                    outerColor = {
+                        static_cast<u8>(color.r * 0xC / 0xF),  // Slightly darker, closer to 60% brightness
+                        static_cast<u8>(color.g * 0xC / 0xF),
+                        static_cast<u8>(color.b * 0xC / 0xF),
                         static_cast<u8>(color.a)  // Maintain the alpha channel
                     };
                     
-                    renderer->drawRect(x + innerPadding, y + innerPadding, _w - 2 * innerPadding, _h - 2 * innerPadding, innerColor);
+                    // Draw the outer block (darker color)
+                    renderer->drawRect(x, y, _w, _h, outerColor);
+    
+                    // Draw the inner block (original color)
+                    renderer->drawRect(x + innerPadding, y + innerPadding, _w - 2 * innerPadding, _h - 2 * innerPadding, color);
     
                     // Add a 3D highlight at the top-left corner for light effect
                     highlightColor = {
-                        static_cast<u8>(std::min(innerColor.r + 0x2, 0xF)),  // Increase brightness more subtly (max out at 0xF)
-                        static_cast<u8>(std::min(innerColor.g + 0x2, 0xF)),
-                        static_cast<u8>(std::min(innerColor.b + 0x2, 0xF)),
+                        static_cast<u8>(std::min(color.r + 0x4, 0xF)),  // Increase brightness more subtly (max out at 0xF)
+                        static_cast<u8>(std::min(color.g + 0x4, 0xF)),
+                        static_cast<u8>(std::min(color.b + 0x4, 0xF)),
                         static_cast<u8>(color.a)  // Keep alpha unchanged
                     };
-
+    
                     renderer->drawRect(x + innerPadding, y + innerPadding, _w / 4, _h / 4, highlightColor);
                 }
             }
         }
     }
-
-
 
     void drawTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tet, int offsetX, int offsetY) {
         // Calculate the drop position for the ghost piece
@@ -828,29 +826,32 @@ private:
     
     // Helper function to draw a 3D block with highlight and shadow
     void draw3DBlock(tsl::gfx::Renderer* renderer, int x, int y, int width, int height, tsl::Color color) {
-        // Outer block color
-        renderer->drawRect(x, y, width, height, color);
-    
-        // Inner block shading (darker)
-        tsl::Color innerColor = {
-            static_cast<u8>(color.r * 0x9 / 0xF),
-            static_cast<u8>(color.g * 0x9 / 0xF),
-            static_cast<u8>(color.b * 0x9 / 0xF),
-            static_cast<u8>(color.a)
+        // Calculate outer block color (darker than the original color)
+        tsl::Color outerColor = {
+            static_cast<u8>(color.r * 0xC / 0xF),  // Slightly darker, closer to 60% brightness
+            static_cast<u8>(color.g * 0xC / 0xF),
+            static_cast<u8>(color.b * 0xC / 0xF),
+            static_cast<u8>(color.a)  // Maintain the alpha channel
         };
+    
+        // Draw the outer block (darker color)
+        renderer->drawRect(x, y, width, height, outerColor);
+    
+        // Draw the inner block (original color)
         int innerPadding = 2;
-        renderer->drawRect(x + innerPadding, y + innerPadding, width - 2 * innerPadding, height - 2 * innerPadding, innerColor);
+        renderer->drawRect(x + innerPadding, y + innerPadding, width - 2 * innerPadding, height - 2 * innerPadding, color);
     
-        // Highlight at the top-left corner (lighter)
+        // Highlight at the top-left corner (lighter shade)
         tsl::Color highlightColor = {
-            static_cast<u8>(std::min(innerColor.r + 0x2, 0xF)),
-            static_cast<u8>(std::min(innerColor.g + 0x2, 0xF)),
-            static_cast<u8>(std::min(innerColor.b + 0x2, 0xF)),
-            static_cast<u8>(color.a)
+            static_cast<u8>(std::min(color.r + 0x4, 0xF)),  // Slightly lighter than the original color
+            static_cast<u8>(std::min(color.g + 0x4, 0xF)),
+            static_cast<u8>(std::min(color.b + 0x4, 0xF)),
+            static_cast<u8>(color.a)  // Keep alpha unchanged
         };
-        
+    
         renderer->drawRect(x + innerPadding, y + innerPadding, width / 4, height / 4, highlightColor);
     }
+
     
     // Helper function to draw preview frame (borders and background)
     void drawPreviewFrame(tsl::gfx::Renderer* renderer, int posX, int posY) {
