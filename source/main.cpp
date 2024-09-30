@@ -967,19 +967,11 @@ public:
             noClickableItems = m_noClickableItems;
         renderer->fillScreen(a(tsl::defaultBackgroundColor));
         
-        if (expandedMemory && !refreshWallpaper.load(std::memory_order_acquire)) {
-            inPlot.store(true, std::memory_order_release);
-            if (!wallpaperData.empty()) {
-                // Draw the bitmap at position (0, 0) on the screen
-                if (!refreshWallpaper.load(std::memory_order_acquire))
-                    renderer->drawBitmap(0, 0, 448, 720, wallpaperData.data());
-                else
-                    inPlot.store(false, std::memory_order_release);
-            } else {
-                inPlot.store(false, std::memory_order_release);
-            }
-        }
-        
+        tsl::elm::drawWallpaper(renderer);
+
+        // Call the extracted widget drawing method
+        drawWidget(renderer);
+
 
         if (touchingMenu && inMainMenu) {
             renderer->drawRoundedRect(0.0f, 12.0f, 245.0f, 73.0f, 6.0f, a(tsl::clickColor));
@@ -1022,80 +1014,6 @@ public:
             }
         }
         
-        
-        if (!(hideBattery && hidePCBTemp && hideSOCTemp && hideClock)) {
-            renderer->drawRect(245, 23, 1, 49, a(tsl::separatorColor));
-        }
-        
-        
-        y_offset = 45;
-        if ((hideBattery && hidePCBTemp && hideSOCTemp) || hideClock) {
-            y_offset += 10;
-        }
-        
-        clock_gettime(CLOCK_REALTIME, &currentTime);
-        if (!hideClock) {
-            static char timeStr[20]; // Allocate a buffer to store the time string
-            strftime(timeStr, sizeof(timeStr), datetimeFormat.c_str(), localtime(&currentTime.tv_sec));
-            localizeTimeStr(timeStr);
-            renderer->drawString(timeStr, false, tsl::cfg::FramebufferWidth - renderer->calculateStringWidth(timeStr, 20, true) - 20, y_offset, 20, a(tsl::clockColor));
-            y_offset += 22;
-        }
-        
-
-        static char PCB_temperatureStr[10];
-        static char SOC_temperatureStr[10];
-
-
-        size_t statusChange = size_t(hideSOCTemp) + size_t(hidePCBTemp) + size_t(hideBattery);
-        static size_t lastStatusChange = 0;
-
-        if ((currentTime.tv_sec - timeOut) >= 1 || statusChange != lastStatusChange) {
-            if (!hideSOCTemp) {
-                ReadSocTemperature(&SOC_temperature);
-                snprintf(SOC_temperatureStr, sizeof(SOC_temperatureStr) - 1, "%d°C", SOC_temperature);
-            } else {
-                strcpy(SOC_temperatureStr, "");
-                SOC_temperature=0;
-            }
-            if (!hidePCBTemp) {
-                ReadPcbTemperature(&PCB_temperature);
-                snprintf(PCB_temperatureStr, sizeof(PCB_temperatureStr) - 1, "%d°C", PCB_temperature);
-            } else {
-                strcpy(PCB_temperatureStr, "");
-                PCB_temperature=0;
-            }
-            if (!hideBattery) {
-                powerGetDetails(&batteryCharge, &isCharging);
-                batteryCharge = std::min(batteryCharge, 100U);
-                sprintf(chargeString, "%d%%", batteryCharge);
-            } else {
-                strcpy(chargeString, "");
-                batteryCharge=0;
-            }
-            timeOut = int(currentTime.tv_sec);
-        }
-
-        lastStatusChange = statusChange;
-        
-        if (!hideBattery && batteryCharge > 0) {
-            tsl::Color batteryColorToUse = isCharging ? tsl::Color(0x0, 0xF, 0x0, 0xF) : 
-                                    (batteryCharge < 20 ? tsl::Color(0xF, 0x0, 0x0, 0xF) : tsl::batteryColor);
-            renderer->drawString(chargeString, false, tsl::cfg::FramebufferWidth - renderer->calculateStringWidth(chargeString, 20, true) - 22, y_offset, 20, a(batteryColorToUse));
-        }
-        
-        offset = 0;
-        if (!hidePCBTemp && PCB_temperature > 0) {
-            if (!hideBattery)
-                offset -= 5;
-            renderer->drawString(PCB_temperatureStr, false, tsl::cfg::FramebufferWidth + offset - renderer->calculateStringWidth(PCB_temperatureStr, 20, true) - renderer->calculateStringWidth(chargeString, 20, true) - 22, y_offset, 20, a(tsl::GradientColor(PCB_temperature)));
-        }
-        
-        if (!hideSOCTemp && SOC_temperature > 0) {
-            if (!hidePCBTemp || !hideBattery)
-                offset -= 5;
-            renderer->drawString(SOC_temperatureStr, false, tsl::cfg::FramebufferWidth + offset - renderer->calculateStringWidth(SOC_temperatureStr, 20, true) - renderer->calculateStringWidth(PCB_temperatureStr, 20, true) - renderer->calculateStringWidth(chargeString, 20, true) - 22, y_offset, 20, a(tsl::GradientColor(SOC_temperature)));
-        }
 
         renderer->drawString(this->m_subtitle, false, 184, y-8, 15, a(tsl::versionTextColor));
         
