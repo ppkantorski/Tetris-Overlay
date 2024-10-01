@@ -2222,13 +2222,6 @@ class Overlay : public tsl::Overlay {
 public:
 
     virtual void initServices() override {
-        fsdevMountSdmc();
-        splInitialize();
-        spsmInitialize();
-        i2cInitialize();
-        ASSERT_FATAL(socketInitializeDefault());
-        ASSERT_FATAL(nifmInitialize(NifmServiceType_User));
-        ASSERT_FATAL(smInitialize());
 
         if (isFileOrDirectory("sdmc:/config/tetris/theme.ini"))
             THEME_CONFIG_INI_PATH = "sdmc:/config/tetris/theme.ini"; // Override theme path (optional)
@@ -2240,13 +2233,6 @@ public:
     }
 
     virtual void exitServices() override {
-        socketExit();
-        nifmExit();
-        i2cExit();
-        smExit();
-        spsmExit();
-        splExit();
-        fsdevUnmountAll();
     }
 
     virtual void onShow() override {}
