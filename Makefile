@@ -59,7 +59,7 @@ APP_VERSION	:= 0.3.1
 TARGET	    := tetris
 BUILD	    := build
 SOURCES	    := source 
-INCLUDES	:= source include lib/libultra/include lib/libtesla/include
+INCLUDES	:= source include lib/libultrahand/libultra/include lib/libultrahand/libtesla/include
 NO_ICON	    := 1
 
 #---------------------------------------------------------------------------------
