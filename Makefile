@@ -72,6 +72,14 @@ CFLAGS := -Wall -Os -ffunction-sections -fdata-sections -flto\
 
 CFLAGS += $(INCLUDE) -D__SWITCH__ -DAPP_VERSION="\"$(APP_VERSION)\"" -D_FORTIFY_SOURCE=2
 
+# Enable appearance overriding
+UI_OVERRIDE_PATH := /config/tetris/
+CFLAGS += -DUI_OVERRIDE_PATH="\"$(UI_OVERRIDE_PATH)\""
+
+# Enable Widget
+USING_WIDGET_DIRECTIVE := 1  # or true
+CFLAGS += -DUSING_WIDGET_DIRECTIVE=$(USING_WIDGET_DIRECTIVE)
+
 CXXFLAGS := $(CFLAGS) -std=c++20 -Wno-dangling-else -ffast-math
 
 ASFLAGS := $(ARCH)
