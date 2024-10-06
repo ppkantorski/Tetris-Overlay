@@ -2221,19 +2221,9 @@ private:
 class Overlay : public tsl::Overlay {
 public:
 
-    virtual void initServices() override {
+    virtual void initServices() override {}
 
-        if (isFileOrDirectory("sdmc:/config/tetris/theme.ini"))
-            THEME_CONFIG_INI_PATH = "sdmc:/config/tetris/theme.ini"; // Override theme path (optional)
-        if (isFileOrDirectory("sdmc:/config/tetris/wallpaper.rgba"))
-            WALLPAPER_PATH = "sdmc:/config/tetris/wallpaper.rgba"; // Overrride wallpaper path (optional)
-
-        tsl::initializeThemeVars(); // for ultrahand themes
-        tsl::initializeUltrahandSettings(); // for opaque screenshots and swipe to open
-    }
-
-    virtual void exitServices() override {
-    }
+    virtual void exitServices() override {}
 
     virtual void onShow() override {}
     virtual void onHide() override { TetrisElement::paused = true; }
