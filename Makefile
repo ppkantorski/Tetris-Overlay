@@ -55,11 +55,11 @@ include $(DEVKITPRO)/libnx/switch_rules
 #---------------------------------------------------------------------------------
 APP_TITLE	:= Tetris
 APP_AUTHOR	:= ppkantorski
-APP_VERSION	:= 0.3.1
+APP_VERSION	:= 0.3.2
 TARGET	    := tetris
 BUILD	    := build
-SOURCES	    := source 
-INCLUDES	:= source include lib/libultrahand/libultra/include lib/libultrahand/libtesla/include
+SOURCES	    := lib/libultrahand/libultra/source source 
+INCLUDES	:= lib/libultrahand/libultra/include lib/libultrahand/libtesla/include source include
 NO_ICON	    := 1
 
 #---------------------------------------------------------------------------------
@@ -67,7 +67,7 @@ NO_ICON	    := 1
 #---------------------------------------------------------------------------------
 ARCH := -march=armv8-a+simd+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
 
-CFLAGS := -Wall -Os -ffunction-sections -fdata-sections -flto\
+CFLAGS := -Wall -Os -ffunction-sections -fdata-sections -flto -fomit-frame-pointer -finline-small-functions \
 			$(ARCH) $(DEFINES)
 
 CFLAGS += $(INCLUDE) -D__SWITCH__ -DAPP_VERSION="\"$(APP_VERSION)\"" -D_FORTIFY_SOURCE=2
@@ -80,7 +80,7 @@ CFLAGS += -DUI_OVERRIDE_PATH="\"$(UI_OVERRIDE_PATH)\""
 USING_WIDGET_DIRECTIVE := 1  # or true
 CFLAGS += -DUSING_WIDGET_DIRECTIVE=$(USING_WIDGET_DIRECTIVE)
 
-CXXFLAGS := $(CFLAGS) -std=c++20 -Wno-dangling-else -ffast-math
+CXXFLAGS := $(CFLAGS) -std=c++20 -Wno-dangling-else -ffast-math -fno-unwind-tables -fno-asynchronous-unwind-tables
 
 ASFLAGS := $(ARCH)
 LDFLAGS += -specs=$(DEVKITPRO)/libnx/switch.specs $(ARCH) -Wl,-Map,$(notdir $*.map)
