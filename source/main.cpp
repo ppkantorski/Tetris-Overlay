@@ -968,6 +968,12 @@ public:
     virtual void draw(tsl::gfx::Renderer* renderer) override {
         if (m_noClickableItems != noClickableItems)
             noClickableItems = m_noClickableItems;
+
+        if (!ult::themeIsInitialized) {
+            tsl::initializeThemeVars(); // Initialize variables for ultrahand themes
+            ult::themeIsInitialized = true;
+        }
+
         renderer->fillScreen(a(tsl::defaultBackgroundColor));
         
         renderer->drawWallpaper();
