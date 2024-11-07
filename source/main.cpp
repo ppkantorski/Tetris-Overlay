@@ -40,6 +40,8 @@
 #include <random>
 #include <mutex>
 
+using namespace ult;
+
 std::mutex boardMutex;  // Declare a mutex for board access
 std::mutex particleMutex;
 
@@ -243,7 +245,8 @@ bool isPositionValid(const Tetrimino& tet, const std::array<std::array<int, BOAR
 
 
 
-
+float countOffset = 0.0f;
+float counter;
 
 // Helper function to calculate where the Tetrimino will land if hard dropped
 int calculateDropDistance(const Tetrimino& tet, const std::array<std::array<int, BOARD_WIDTH>, BOARD_HEIGHT>& board) {
@@ -443,7 +446,7 @@ public:
                     tsl::Color redColor = tsl::Color({0xF, 0x0, 0x0, 0xF});
                     
                     // Calculate text width to center the text
-                    int textWidth = renderer->calculateStringWidth("Game Over", 24);
+                    int textWidth = tsl::gfx::calculateStringWidth("Game Over", 24);
                     
                     // Draw "Game Over" at the center of the board
                     renderer->drawString("Game Over", false, centerX - textWidth / 2, centerY, 24, redColor);
@@ -453,7 +456,7 @@ public:
                 tsl::Color greenColor = tsl::Color({0x0, 0xF, 0x0, 0xF});
                 
                 // Calculate text width to center the text
-                int textWidth = renderer->calculateStringWidth("Paused", 24);
+                int textWidth = tsl::gfx::calculateStringWidth("Paused", 24);
                 
                 // Draw "Paused" at the center of the board
                 renderer->drawString("Paused", false, centerX - textWidth / 2, centerY, 24, greenColor);
@@ -478,7 +481,7 @@ public:
 
             // Calculate text width to center the text
             std::string scoreLine = "+" + std::to_string(linesClearedScore);
-            int textWidth = renderer->calculateStringWidth(scoreLine, 20);
+            int textWidth = tsl::gfx::calculateStringWidth(scoreLine, 20);
             renderer->drawString(scoreLine, false, centerX - textWidth / 2, centerY, 20, tsl::Color({0x0, 0xF, 0x0, 0xF}));
 
 
@@ -515,12 +518,12 @@ public:
                 std::string prefix = linesClearedText.substr(0, xPos + 2);  // Get the "2x " or "10x "
                 std::string remainingText = "Tetris";  // The remaining part is always "Tetris"
                 
-                int prefixWidth = renderer->calculateStringWidth(prefix.c_str(), regularFontSize);
-                int tetrisWidth = renderer->calculateStringWidth(remainingText.c_str(), dynamicFontSize);
+                int prefixWidth = tsl::gfx::calculateStringWidth(prefix.c_str(), regularFontSize);
+                int tetrisWidth = tsl::gfx::calculateStringWidth(remainingText.c_str(), dynamicFontSize);
                 totalTextWidth = prefixWidth + tetrisWidth + 9;
                 
             } else if (linesClearedText == "Tetris") {
-                totalTextWidth = renderer->calculateStringWidth("Tetris", dynamicFontSize) + 12;
+                totalTextWidth = tsl::gfx::calculateStringWidth("Tetris", dynamicFontSize) + 12;
                 
             } else if (linesClearedText.find("\n") != std::string::npos) {
                 // Handle multiline text (e.g., "T-Spin\nSingle")
@@ -530,14 +533,14 @@ public:
                 int lineWidth;
                 // Calculate the maximum width among the lines
                 for (const std::string &line : lines) {
-                    lineWidth = renderer->calculateStringWidth(line.c_str(), regularFontSize);
+                    lineWidth = tsl::gfx::calculateStringWidth(line.c_str(), regularFontSize);
                     if (lineWidth > maxLineWidth) {
                         maxLineWidth = lineWidth;
                     }
                 }
                 totalTextWidth = maxLineWidth + 18;  // Adjust the total width to include padding
             } else {
-                totalTextWidth = renderer->calculateStringWidth(linesClearedText.c_str(), regularFontSize) + 18;
+                totalTextWidth = tsl::gfx::calculateStringWidth(linesClearedText.c_str(), regularFontSize) + 18;
             }
             
             // Handle the sliding phases
@@ -560,9 +563,9 @@ public:
             
             tsl::Color textColor(0xF, 0xF, 0xF, 0xF);  // White text for non-Tetris strings
             auto currentTimeCount = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
-            static auto dynamicLogoRGB1 = tsl::hexToRGB444Floats("#6929ff");
-            static auto dynamicLogoRGB2 = tsl::hexToRGB444Floats("#fff429");
-            float countOffset = 0.0f;
+            static auto dynamicLogoRGB1 = tsl::RGB888("#6929ff");
+            static auto dynamicLogoRGB2 = tsl::RGB888("#fff429");
+            countOffset = 0.0f;
             
             tsl::Color highlightColor(0);
             float counter, transitionProgress;
@@ -572,25 +575,25 @@ public:
                 //std::string prefix = "2x ";
                 size_t xPos = linesClearedText.find("x Tetris");
                 std::string prefix = linesClearedText.substr(0, xPos + 2);  // Get the "2x " or "10x "
-                int prefixWidth = renderer->calculateStringWidth(prefix.c_str(), regularFontSize);
+                int prefixWidth = tsl::gfx::calculateStringWidth(prefix.c_str(), regularFontSize);
                 tsl::Color whiteColor(0xF, 0xF, 0xF, 0xF);
                 renderer->drawString(prefix.c_str(), false, textX, textY, regularFontSize, whiteColor);
                 textX += prefixWidth;
                 
                 std::string remainingText = "Tetris";
                 for (char letter : remainingText) {
-                    counter = (2 * M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
-                    transitionProgress = std::sin(3.0 * (counter - (2.0 * M_PI / 3.0)));
+                    counter = (2 * _M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
+                    transitionProgress = std::sin(3.0 * (counter - (2.0 * _M_PI / 3.0)));
                     
                     highlightColor = {
-                        static_cast<u8>((std::get<0>(dynamicLogoRGB2) - std::get<0>(dynamicLogoRGB1)) * (transitionProgress + 1.0) / 2.0 + std::get<0>(dynamicLogoRGB1)),
-                        static_cast<u8>((std::get<1>(dynamicLogoRGB2) - std::get<1>(dynamicLogoRGB1)) * (transitionProgress + 1.0) / 2.0 + std::get<1>(dynamicLogoRGB1)),
-                        static_cast<u8>((std::get<2>(dynamicLogoRGB2) - std::get<2>(dynamicLogoRGB1)) * (transitionProgress + 1.0) / 2.0 + std::get<2>(dynamicLogoRGB1)),
-                        0xF
+                        static_cast<u8>((dynamicLogoRGB2.r - dynamicLogoRGB1.r) * (transitionProgress + 1.0) / 2.0 + dynamicLogoRGB1.r),
+                        static_cast<u8>((dynamicLogoRGB2.g - dynamicLogoRGB1.g) * (transitionProgress + 1.0) / 2.0 + dynamicLogoRGB1.g),
+                        static_cast<u8>((dynamicLogoRGB2.b - dynamicLogoRGB1.b) * (transitionProgress + 1.0) / 2.0 + dynamicLogoRGB1.b),
+                        15 // Alpha remains constant, or you can interpolate it as well
                     };
                     
                     std::string charStr(1, letter);
-                    int charWidth = renderer->calculateStringWidth(charStr.c_str(), dynamicFontSize);
+                    int charWidth = tsl::gfx::calculateStringWidth(charStr.c_str(), dynamicFontSize);
                     renderer->drawString(charStr.c_str(), false, textX, textY, dynamicFontSize, highlightColor);
                     textX += charWidth;
                     countOffset -= 0.2f;
@@ -598,18 +601,18 @@ public:
             } else if (linesClearedText == "Tetris") {
                 // Handle "Tetris" with dynamic color effect
                 for (char letter : linesClearedText) {
-                    counter = (2 * M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
-                    transitionProgress = std::sin(3.0 * (counter - (2.0 * M_PI / 3.0)));
+                    counter = (2 * _M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
+                    transitionProgress = std::sin(3.0 * (counter - (2.0 * _M_PI / 3.0)));
                     
                     highlightColor = {
-                        static_cast<u8>((std::get<0>(dynamicLogoRGB2) - std::get<0>(dynamicLogoRGB1)) * (transitionProgress + 1.0) / 2.0 + std::get<0>(dynamicLogoRGB1)),
-                        static_cast<u8>((std::get<1>(dynamicLogoRGB2) - std::get<1>(dynamicLogoRGB1)) * (transitionProgress + 1.0) / 2.0 + std::get<1>(dynamicLogoRGB1)),
-                        static_cast<u8>((std::get<2>(dynamicLogoRGB2) - std::get<2>(dynamicLogoRGB1)) * (transitionProgress + 1.0) / 2.0 + std::get<2>(dynamicLogoRGB1)),
-                        0xF
+                        static_cast<u8>((dynamicLogoRGB2.r - dynamicLogoRGB1.r) * (transitionProgress + 1.0) / 2.0 + dynamicLogoRGB1.r),
+                        static_cast<u8>((dynamicLogoRGB2.g - dynamicLogoRGB1.g) * (transitionProgress + 1.0) / 2.0 + dynamicLogoRGB1.g),
+                        static_cast<u8>((dynamicLogoRGB2.b - dynamicLogoRGB1.b) * (transitionProgress + 1.0) / 2.0 + dynamicLogoRGB1.b),
+                        15 // Alpha remains constant, or you can interpolate it as well
                     };
                     
                     std::string charStr(1, letter);
-                    int charWidth = renderer->calculateStringWidth(charStr.c_str(), dynamicFontSize);
+                    int charWidth = tsl::gfx::calculateStringWidth(charStr.c_str(), dynamicFontSize);
                     renderer->drawString(charStr.c_str(), false, textX, textY, dynamicFontSize, highlightColor);
                     textX += charWidth;
                     countOffset -= 0.2f;
@@ -624,7 +627,7 @@ public:
                 // Find the maximum width
                 int maxLineWidth = 0;
                 for (const std::string &line : lines) {
-                    int lineWidth = renderer->calculateStringWidth(line.c_str(), regularFontSize);
+                    int lineWidth = tsl::gfx::calculateStringWidth(line.c_str(), regularFontSize);
                     if (lineWidth > maxLineWidth) {
                         maxLineWidth = lineWidth;
                     }
@@ -632,7 +635,7 @@ public:
                 
                 // Draw each line centered based on max width
                 for (const std::string &line : lines) {
-                    int lineWidth = renderer->calculateStringWidth(line.c_str(), regularFontSize);
+                    int lineWidth = tsl::gfx::calculateStringWidth(line.c_str(), regularFontSize);
                     int centeredTextX = textX + (maxLineWidth - lineWidth) / 2;  // Center each line based on the max width
                     renderer->drawString(line.c_str(), false, centeredTextX, startY, regularFontSize, textColor);
                     startY += lineSpacing;
@@ -958,8 +961,8 @@ uint64_t TetrisElement::maxHighScore = 0; // Initialize the max high score
 
 class CustomOverlayFrame : public tsl::elm::OverlayFrame {
 public:
-    CustomOverlayFrame(const std::string& title, const std::string& subtitle, const std::string& menuMode = "", const std::string& colorSelection = "", const std::string& pageLeftName = "", const std::string& pageRightName = "", const bool& _noClickableItems = false)
-        : tsl::elm::OverlayFrame(title, subtitle, menuMode, colorSelection, pageLeftName, pageRightName, _noClickableItems) {}
+    CustomOverlayFrame(const std::string& title, const std::string& subtitle, const bool& _noClickableItems = false)
+        : tsl::elm::OverlayFrame(title, subtitle, _noClickableItems) {}
 
     // Override the draw method to customize rendering logic for Tetris
     virtual void draw(tsl::gfx::Renderer* renderer) override {
@@ -967,10 +970,10 @@ public:
             noClickableItems = m_noClickableItems;
         renderer->fillScreen(a(tsl::defaultBackgroundColor));
         
-        tsl::elm::drawWallpaper(renderer);
+        renderer->drawWallpaper();
 
         // Call the extracted widget drawing method
-        drawWidget(renderer);
+        renderer->drawWidget();
 
 
         if (touchingMenu && inMainMenu) {
@@ -988,28 +991,28 @@ public:
         if (!tsl::disableColorfulLogo) {
             auto currentTimeCount = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
             float progress;
-            static auto dynamicLogoRGB1 = tsl::hexToRGB444Floats("#6929ff");
-            static auto dynamicLogoRGB2 = tsl::hexToRGB444Floats("#fff429");
+            static auto dynamicLogoRGB1 = tsl::RGB888("#6929ff");
+            static auto dynamicLogoRGB2 = tsl::RGB888("#fff429");
             tsl::Color highlightColor(0);
             for (char letter : m_title) {
-                counter = (2 * M_PI * (fmod(currentTimeCount/4.0, 2.0) + countOffset) / 2.0);
-                progress = std::sin(3.0 * (counter - (2.0 * M_PI / 3.0))); // Faster transition from -1 to 1 and back in the remaining 1/3
+                counter = (2 * _M_PI * (fmod(currentTimeCount/4.0, 2.0) + countOffset) / 2.0);
+                progress = std::sin(3.0 * (counter - (2.0 * _M_PI / 3.0))); // Faster transition from -1 to 1 and back in the remaining 1/3
                 
                 highlightColor = {
-                    static_cast<u8>((std::get<0>(dynamicLogoRGB2) - std::get<0>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<0>(dynamicLogoRGB1)),
-                    static_cast<u8>((std::get<1>(dynamicLogoRGB2) - std::get<1>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<1>(dynamicLogoRGB1)),
-                    static_cast<u8>((std::get<2>(dynamicLogoRGB2) - std::get<2>(dynamicLogoRGB1)) * (progress + 1.0) / 2.0 + std::get<2>(dynamicLogoRGB1)),
-                    15
+                    static_cast<u8>((dynamicLogoRGB2.r - dynamicLogoRGB1.r) * (progress + 1.0) / 2.0 + dynamicLogoRGB1.r),
+                    static_cast<u8>((dynamicLogoRGB2.g - dynamicLogoRGB1.g) * (progress + 1.0) / 2.0 + dynamicLogoRGB1.g),
+                    static_cast<u8>((dynamicLogoRGB2.b - dynamicLogoRGB1.b) * (progress + 1.0) / 2.0 + dynamicLogoRGB1.b),
+                    15 // Alpha remains constant, or you can interpolate it as well
                 };
                 
                 renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, a(highlightColor));
-                x += renderer->calculateStringWidth(std::string(1, letter), fontSize);
+                x += tsl::gfx::calculateStringWidth(std::string(1, letter), fontSize);
                 countOffset -= 0.2F;
             }
         } else {
             for (char letter : m_title) {
                 renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, a(tsl::logoColor1));
-                x += renderer->calculateStringWidth(std::string(1, letter), fontSize);
+                x += tsl::gfx::calculateStringWidth(std::string(1, letter), fontSize);
                 countOffset -= 0.2F;
             }
         }
@@ -1037,29 +1040,25 @@ public:
             m_noClickableItems = false;
         }
 
-        backWidth = renderer->calculateStringWidth(bCommand, 23);
+        backWidth = tsl::gfx::calculateStringWidth(bCommand, 23);
         if (touchingBack) {
             renderer->drawRoundedRect(18.0f, static_cast<float>(tsl::cfg::FramebufferHeight - 73), 
                                       backWidth+68.0f, 73.0f, 6.0f, a(tsl::clickColor));
         }
 
-        selectWidth = renderer->calculateStringWidth(aCommand, 23);
+        selectWidth = tsl::gfx::calculateStringWidth(aCommand, 23);
         if (touchingSelect && !m_noClickableItems) {
             renderer->drawRoundedRect(18.0f + backWidth+68.0f, static_cast<float>(tsl::cfg::FramebufferHeight - 73), 
                                       selectWidth+68.0f, 73.0f, 6.0f, a(tsl::clickColor));
         }
         
-        if (!(this->m_pageLeftName).empty())
-            nextPageWidth = renderer->calculateStringWidth(this->m_pageLeftName, 23);
-        else if (!(this->m_pageRightName).empty())
-            nextPageWidth = renderer->calculateStringWidth(this->m_pageRightName, 23);
-        else if (inMainMenu)
-            if (inOverlaysPage)
-                nextPageWidth = renderer->calculateStringWidth(PACKAGES,23);
-            else if (inPackagesPage)
-                nextPageWidth = renderer->calculateStringWidth(OVERLAYS,23);
+        //if (inMainMenu)
+        //    if (inOverlaysPage)
+        //        nextPageWidth = tsl::gfx::calculateStringWidth(ult::PACKAGES,23);
+        //    else if (inPackagesPage)
+        //        nextPageWidth = tsl::gfx::calculateStringWidth(OVERLAYS,23);
 
-        if (inMainMenu || !(this->m_pageLeftName).empty() || !(this->m_pageRightName).empty()) {
+        if (inMainMenu) {
             if (touchingNextPage) {
                 renderer->drawRoundedRect(18.0f + backWidth+68.0f + ((!m_noClickableItems) ? selectWidth+68.0f : 0), static_cast<float>(tsl::cfg::FramebufferHeight - 73), 
                                           nextPageWidth+70.0f, 73.0f, 6.0f, a(tsl::clickColor));
@@ -1072,17 +1071,17 @@ public:
         else
             menuBottomLine = "\uE0E1"+GAP_2+bCommand+GAP_1+"\uE0E0"+GAP_2+aCommand+GAP_1;
 
-        if (this->m_menuMode == "packages") {
-            menuBottomLine += "\uE0ED"+GAP_2+OVERLAYS;
-        } else if (this->m_menuMode == "overlays") {
-            menuBottomLine += "\uE0EE"+GAP_2+PACKAGES;
-        }
+        //if (this->m_menuMode == "packages") {
+        //    menuBottomLine += "\uE0ED"+GAP_2+OVERLAYS;
+        //} else if (this->m_menuMode == "overlays") {
+        //    menuBottomLine += "\uE0EE"+GAP_2+ult::PACKAGES;
+        //}
         
-        if (!(this->m_pageLeftName).empty()) {
-            menuBottomLine += "\uE0ED"+GAP_2 + this->m_pageLeftName;
-        } else if (!(this->m_pageRightName).empty()) {
-            menuBottomLine += "\uE0EE"+GAP_2 + this->m_pageRightName;
-        }
+        //if (!(this->m_pageLeftName).empty()) {
+        //    menuBottomLine += "\uE0ED"+GAP_2 + this->m_pageLeftName;
+        //} else if (!(this->m_pageRightName).empty()) {
+        //    menuBottomLine += "\uE0EE"+GAP_2 + this->m_pageRightName;
+        //}
         
         
         // Render the text with special character handling
