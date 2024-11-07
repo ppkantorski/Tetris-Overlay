@@ -80,6 +80,12 @@ CFLAGS += -DUI_OVERRIDE_PATH="\"$(UI_OVERRIDE_PATH)\""
 USING_WIDGET_DIRECTIVE := 1  # or true
 CFLAGS += -DUSING_WIDGET_DIRECTIVE=$(USING_WIDGET_DIRECTIVE)
 
+# For theme / wallpaper loading conducted in GUI class method (add to project if theme does not appear)
+#INITIALIZE_IN_GUI_DIRECTIVE := 1
+#CFLAGS += -DINITIALIZE_IN_GUI_DIRECTIVE=$(INITIALIZE_IN_GUI_DIRECTIVE)
+
+
+
 CXXFLAGS := $(CFLAGS) -std=c++20 -Wno-dangling-else -ffast-math -fno-unwind-tables -fno-asynchronous-unwind-tables
 
 ASFLAGS := $(ARCH)
