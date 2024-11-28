@@ -55,7 +55,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 #---------------------------------------------------------------------------------
 APP_TITLE	:= Tetris
 APP_AUTHOR	:= ppkantorski
-APP_VERSION	:= 0.3.2
+APP_VERSION	:= 0.3.3
 TARGET	    := tetris
 BUILD	    := build
 SOURCES	    := lib/libultrahand/libultra/source source 
@@ -79,6 +79,10 @@ CFLAGS += -DUI_OVERRIDE_PATH="\"$(UI_OVERRIDE_PATH)\""
 # Enable Widget
 USING_WIDGET_DIRECTIVE := 1  # or true
 CFLAGS += -DUSING_WIDGET_DIRECTIVE=$(USING_WIDGET_DIRECTIVE)
+
+# Enable Widget
+NO_BACK_KEY_DIRECTIVE := 1  # or true
+CFLAGS += -DNO_BACK_KEY_DIRECTIVE=$(NO_BACK_KEY_DIRECTIVE)
 
 # For theme / wallpaper loading conducted in GUI class method (add to project if theme does not appear)
 #INITIALIZE_IN_GUI_DIRECTIVE := 1
