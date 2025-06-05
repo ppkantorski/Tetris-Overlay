@@ -1515,131 +1515,132 @@ public:
     
             // Return true to indicate input was handled
             return true;
-        }
-    
-        // Handle swapping with the stored Tetrimino
-        if (keysDown & KEY_L && !hasSwapped) {
-            swapStoredTetrimino();
-            hasSwapped = true;
-        }
-    
-        // Handle left movement with DAS and ARR
-        if (keysHeld & KEY_LEFT) {
-            if (!leftHeld) {
-                // First press
-                moved = move(-1, 0);
-                lastLeftMove = currentTime;
-                leftHeld = true;
-                leftARR = false; // Reset ARR phase
-            } else {
-                // DAS check
-                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastLeftMove).count();
-                if (!leftARR && elapsed >= DAS) {
-                    // Once DAS is reached, start ARR
-                    moved = move(-1, 0);
-                    lastLeftMove = currentTime; // Reset time for ARR phase
-                    leftARR = true;
-                } else if (leftARR && elapsed >= ARR) {
-                    // Auto-repeat after ARR interval
-                    moved = move(-1, 0);
-                    lastLeftMove = currentTime; // Keep resetting for ARR
-                }
-            }
         } else {
-            leftHeld = false;
-        }
-    
-        // Handle right movement with DAS and ARR
-        if (keysHeld & KEY_RIGHT) {
-            if (!rightHeld) {
-                // First press
-                moved = move(1, 0);
-                lastRightMove = currentTime;
-                rightHeld = true;
-                rightARR = false; // Reset ARR phase
+            
+            // Handle swapping with the stored Tetrimino
+            if (keysDown & KEY_L && !hasSwapped) {
+                swapStoredTetrimino();
+                hasSwapped = true;
+            }
+            
+            // Handle left movement with DAS and ARR
+            if (keysHeld & KEY_LEFT) {
+                if (!leftHeld) {
+                    // First press
+                    moved = move(-1, 0);
+                    lastLeftMove = currentTime;
+                    leftHeld = true;
+                    leftARR = false; // Reset ARR phase
+                } else {
+                    // DAS check
+                    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastLeftMove).count();
+                    if (!leftARR && elapsed >= DAS) {
+                        // Once DAS is reached, start ARR
+                        moved = move(-1, 0);
+                        lastLeftMove = currentTime; // Reset time for ARR phase
+                        leftARR = true;
+                    } else if (leftARR && elapsed >= ARR) {
+                        // Auto-repeat after ARR interval
+                        moved = move(-1, 0);
+                        lastLeftMove = currentTime; // Keep resetting for ARR
+                    }
+                }
             } else {
-                // DAS check
-                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastRightMove).count();
-                if (!rightARR && elapsed >= DAS) {
-                    // Once DAS is reached, start ARR
+                leftHeld = false;
+            }
+            
+            // Handle right movement with DAS and ARR
+            if (keysHeld & KEY_RIGHT) {
+                if (!rightHeld) {
+                    // First press
                     moved = move(1, 0);
                     lastRightMove = currentTime;
-                    rightARR = true;
-                } else if (rightARR && elapsed >= ARR) {
-                    // Auto-repeat after ARR interval
-                    moved = move(1, 0);
-                    lastRightMove = currentTime; // Keep resetting for ARR
-                }
-            }
-        } else {
-            rightHeld = false;
-        }
-    
-        // Handle down movement with DAS and ARR for soft dropping
-        if (keysHeld & KEY_DOWN) {
-            if (!downHeld) {
-                // Check if the piece is on the floor and lock it immediately
-                if (isOnFloor()) {
-                    hardDrop();
+                    rightHeld = true;
+                    rightARR = false; // Reset ARR phase
                 } else {
-                    // First press
-                    moved = move(0, 1);
-                    lastDownMove = currentTime;
-                    downHeld = true;
-                    downARR = false; // Reset ARR phase
-                }
-
-            } else {
-                // DAS check
-                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastDownMove).count();
-                if (!downARR && elapsed >= DAS) {
-                    if (isOnFloor()) {
-                        hardDrop();
-                    } else {
+                    // DAS check
+                    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastRightMove).count();
+                    if (!rightARR && elapsed >= DAS) {
                         // Once DAS is reached, start ARR
-                        moved = move(0, 1);
-                        lastDownMove = currentTime;
-                        downARR = true;
+                        moved = move(1, 0);
+                        lastRightMove = currentTime;
+                        rightARR = true;
+                    } else if (rightARR && elapsed >= ARR) {
+                        // Auto-repeat after ARR interval
+                        moved = move(1, 0);
+                        lastRightMove = currentTime; // Keep resetting for ARR
                     }
-                } else if (downARR && elapsed >= ARR) {
+                }
+            } else {
+                rightHeld = false;
+            }
+            
+            // Handle down movement with DAS and ARR for soft dropping
+            if (keysHeld & KEY_DOWN) {
+                if (!downHeld) {
+                    // Check if the piece is on the floor and lock it immediately
                     if (isOnFloor()) {
                         hardDrop();
                     } else {
-                        // Auto-repeat after ARR interval
+                        // First press
                         moved = move(0, 1);
                         lastDownMove = currentTime;
+                        downHeld = true;
+                        downARR = false; // Reset ARR phase
+                    }
+    
+                } else {
+                    // DAS check
+                    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastDownMove).count();
+                    if (!downARR && elapsed >= DAS) {
+                        if (isOnFloor()) {
+                            hardDrop();
+                        } else {
+                            // Once DAS is reached, start ARR
+                            moved = move(0, 1);
+                            lastDownMove = currentTime;
+                            downARR = true;
+                        }
+                    } else if (downARR && elapsed >= ARR) {
+                        if (isOnFloor()) {
+                            hardDrop();
+                        } else {
+                            // Auto-repeat after ARR interval
+                            moved = move(0, 1);
+                            lastDownMove = currentTime;
+                        }
                     }
                 }
+    
+            } else {
+                downHeld = false;
             }
-
-        } else {
-            downHeld = false;
+            
+            // Handle hard drop with the Up key
+            if (keysDown & KEY_UP) {
+                hardDrop();  // Perform hard drop immediately
+            }
+            
+            // Handle rotation inputs
+            if (keysDown & KEY_A) {
+                rotate(); // Rotate clockwise
+                moved = true;
+            } else if (keysDown & KEY_B) {
+                rotateCounterclockwise(); // Rotate counterclockwise
+                moved = true;
+            }
+            
+            // Handle pause/unpause
+            if (keysDown & KEY_PLUS) {
+                TetrisElement::paused = !TetrisElement::paused;
+            }
+            
+            // Reset the lock delay timer if the piece has moved or rotated
+            if (moved) {
+                lockDelayCounter = std::chrono::milliseconds(0);
+            }
+            
         }
-        
-        // Handle hard drop with the Up key
-        if (keysDown & KEY_UP) {
-            hardDrop();  // Perform hard drop immediately
-        }
-        
-        // Handle rotation inputs
-        if (keysDown & KEY_A) {
-            rotate(); // Rotate clockwise
-            moved = true;
-        } else if (keysDown & KEY_B) {
-            rotateCounterclockwise(); // Rotate counterclockwise
-            moved = true;
-        }
-        
-        // Handle pause/unpause
-        if (keysDown & KEY_PLUS) {
-            TetrisElement::paused = !TetrisElement::paused;
-        }
-        
-        // Reset the lock delay timer if the piece has moved or rotated
-        if (moved) {
-            lockDelayCounter = std::chrono::milliseconds(0);
-        }
-        
         return false;
     }
     
@@ -2226,7 +2227,9 @@ private:
 class Overlay : public tsl::Overlay {
 public:
 
-    virtual void initServices() override {}
+    virtual void initServices() override {
+        tsl::overrideBackButton = true; // for properly overriding the always go back functionality of KEY_B
+    }
 
     virtual void exitServices() override {}
 
