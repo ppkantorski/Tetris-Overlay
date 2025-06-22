@@ -1097,7 +1097,8 @@ public:
         
         
         // Render the text with special character handling
-        renderer->drawStringWithColoredSections(menuBottomLine, false, {"\uE0E1","\uE0E0","\uE0ED","\uE0EE"}, 30, 693, 23, a(tsl::bottomTextColor), a(tsl::buttonColor));
+        static std::vector<std::string> symbols = {"\uE0E1","\uE0E0","\uE0ED","\uE0EE"};
+        renderer->drawStringWithColoredSections(menuBottomLine, false, symbols, 30, 693, 23, a(tsl::bottomTextColor), a(tsl::buttonColor));
 
         
         if (this->m_contentElement != nullptr)
@@ -1862,7 +1863,7 @@ private:
     
             // If standard kicks fail, try extra kicks in tight spaces
             if (!rotationSuccessful) {
-                const std::array<std::pair<int, int>, 7> extraKicks = {{ {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2}, {2, 0}, {-2, 0} }};
+                static const std::array<std::pair<int, int>, 7> extraKicks = {{ {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2}, {2, 0}, {-2, 0} }};
                 for (const auto& kick : extraKicks) {
                     currentTetrimino.x = previousX + kick.first;
                     currentTetrimino.y = previousY + kick.second;
