@@ -208,14 +208,16 @@ struct Tetrimino {
 
 // Function to check if the current position of a Tetrimino is valid
 bool isPositionValid(const Tetrimino& tet, const std::array<std::array<int, BOARD_WIDTH>, BOARD_HEIGHT>& board) {
+    int rotatedIndex;
+    int x, y;
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
-            int rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
+            rotatedIndex = getRotatedIndex(tet.type, i, j, tet.rotation);
 
             // Only check cells that contain a block
             if (tetriminoShapes[tet.type][rotatedIndex] != 0) {
-                int x = tet.x + j;
-                int y = tet.y + i;
+                x = tet.x + j;
+                y = tet.y + i;
 
                 // Check if x and y are within the bounds of the board horizontally
                 if (x < 0 || x >= BOARD_WIDTH) {
@@ -380,12 +382,12 @@ public:
         renderer->drawString("", false, offsetX + BOARD_WIDTH * _w + 64, offsetY + (BORDER_HEIGHT + 12)*2.5, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
 
         // Draw the number of lines cleared
-        std::ostringstream linesStr;
+        ult::StringStream linesStr;
         linesStr << "Lines\n" << linesCleared;
         renderer->drawString(linesStr.str().c_str(), false, offsetX + BOARD_WIDTH * _w + 14, offsetY + (BORDER_HEIGHT + 12)*3 + 18, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
         
         // Draw the current level
-        std::ostringstream levelStr;
+        ult::StringStream levelStr;
         levelStr << "Level\n" << level;
         renderer->drawString(levelStr.str().c_str(), false, offsetX + BOARD_WIDTH * _w + 14, offsetY + (BORDER_HEIGHT + 12)*3 + 63, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
         
@@ -570,6 +572,7 @@ public:
             tsl::Color highlightColor(0);
             float counter, transitionProgress;
             
+            int charWidth;
             // Handle "2x Tetris" special case
             if (linesClearedText.find("x Tetris") != std::string::npos) {
                 //std::string prefix = "2x ";
@@ -581,6 +584,7 @@ public:
                 textX += prefixWidth;
                 
                 std::string remainingText = "Tetris";
+                
                 for (char letter : remainingText) {
                     counter = (2 * _M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
                     transitionProgress = std::sin(3.0 * (counter - (2.0 * _M_PI / 3.0)));
@@ -593,7 +597,7 @@ public:
                     };
                     
                     std::string charStr(1, letter);
-                    int charWidth = tsl::gfx::calculateStringWidth(charStr.c_str(), dynamicFontSize);
+                    charWidth = tsl::gfx::calculateStringWidth(charStr.c_str(), dynamicFontSize);
                     renderer->drawString(charStr.c_str(), false, textX, textY, dynamicFontSize, highlightColor);
                     textX += charWidth;
                     countOffset -= 0.2f;
@@ -612,7 +616,7 @@ public:
                     };
                     
                     std::string charStr(1, letter);
-                    int charWidth = tsl::gfx::calculateStringWidth(charStr.c_str(), dynamicFontSize);
+                    charWidth = tsl::gfx::calculateStringWidth(charStr.c_str(), dynamicFontSize);
                     renderer->drawString(charStr.c_str(), false, textX, textY, dynamicFontSize, highlightColor);
                     textX += charWidth;
                     countOffset -= 0.2f;
@@ -626,17 +630,18 @@ public:
                 
                 // Find the maximum width
                 int maxLineWidth = 0;
+                int lineWidth;
                 for (const std::string &line : lines) {
-                    int lineWidth = tsl::gfx::calculateStringWidth(line.c_str(), regularFontSize);
+                    lineWidth = tsl::gfx::calculateStringWidth(line.c_str(), regularFontSize);
                     if (lineWidth > maxLineWidth) {
                         maxLineWidth = lineWidth;
                     }
                 }
-                
+                int centeredTextX;
                 // Draw each line centered based on max width
                 for (const std::string &line : lines) {
-                    int lineWidth = tsl::gfx::calculateStringWidth(line.c_str(), regularFontSize);
-                    int centeredTextX = textX + (maxLineWidth - lineWidth) / 2;  // Center each line based on the max width
+                    lineWidth = tsl::gfx::calculateStringWidth(line.c_str(), regularFontSize);
+                    centeredTextX = textX + (maxLineWidth - lineWidth) / 2;  // Center each line based on the max width
                     renderer->drawString(line.c_str(), false, centeredTextX, startY, regularFontSize, textColor);
                     startY += lineSpacing;
                 }
@@ -905,10 +910,11 @@ private:
         
         int blockWidth, blockHeight, drawX, drawY;
         
+        int index;
         // Draw each block of the Tetrimino
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                int index = getRotatedIndex(tetrimino.type, i, j, tetrimino.rotation);
+                index = getRotatedIndex(tetrimino.type, i, j, tetrimino.rotation);
                 if (tetriminoShapes[tetrimino.type][index] != 0) {
                     blockWidth = _w / 2;
                     blockHeight = _h / 2;
@@ -1091,7 +1097,7 @@ public:
         
         
         // Render the text with special character handling
-        renderer->drawStringWithColoredSections(menuBottomLine, {"\uE0E1","\uE0E0","\uE0ED","\uE0EE"}, 30, 693, 23, a(tsl::bottomTextColor), a(tsl::buttonColor));
+        renderer->drawStringWithColoredSections(menuBottomLine, false, {"\uE0E1","\uE0E0","\uE0ED","\uE0EE"}, 30, 693, 23, a(tsl::bottomTextColor), a(tsl::buttonColor));
 
         
         if (this->m_contentElement != nullptr)
@@ -1689,7 +1695,7 @@ private:
     // Function to dynamically calculate fall speed based on the current level
     std::chrono::milliseconds getFallSpeed() {
         // Define the fall speeds in milliseconds based on levels (simulating classic Tetris)
-        const std::array<int, 30> fallSpeeds = {
+        static const std::array<int, 30> fallSpeeds = {
             800, // Level 0: 800ms per row drop
             720, // Level 1
             630, // Level 2
@@ -1834,9 +1840,10 @@ private:
             rotationSuccessful = true;
             pieceWasKickedUp = false;
         } else {
+            int kickIndex;
             // Try the standard wall kicks if the piece doesn't fit
             for (int i = 0; i < 5; ++i) {
-                int kickIndex = (direction > 0) ? previousRotation : currentTetrimino.rotation;
+                kickIndex = (direction > 0) ? previousRotation : currentTetrimino.rotation;
                 const auto& kick = kicks[kickIndex][i];
                 
                 // Apply the kick
