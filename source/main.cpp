@@ -1335,140 +1335,191 @@ public:
 
 
 
-
+    
     void saveGameState() {
-        json_t* root = json_object();
+        cJSON* root = cJSON_CreateObject();
     
         // Save general game state
-        json_object_set_new(root, "score", json_string(std::to_string(tetrisElement->getScore()).c_str()));
-        json_object_set_new(root, "maxHighScore", json_string(std::to_string(TetrisElement::maxHighScore).c_str()));
-        json_object_set_new(root, "paused", json_boolean(TetrisElement::paused));
-        json_object_set_new(root, "gameOver", json_boolean(tetrisElement->gameOver));
-        json_object_set_new(root, "linesCleared", json_integer(tetrisElement->getLinesCleared()));
-        json_object_set_new(root, "level", json_integer(tetrisElement->getLevel()));
-        json_object_set_new(root, "hasSwapped", json_boolean(hasSwapped));
+        cJSON_AddStringToObject(root, "score", std::to_string(tetrisElement->getScore()).c_str());
+        cJSON_AddStringToObject(root, "maxHighScore", std::to_string(TetrisElement::maxHighScore).c_str());
+        cJSON_AddBoolToObject(root, "paused", TetrisElement::paused);
+        cJSON_AddBoolToObject(root, "gameOver", tetrisElement->gameOver);
+        cJSON_AddNumberToObject(root, "linesCleared", tetrisElement->getLinesCleared());
+        cJSON_AddNumberToObject(root, "level", tetrisElement->getLevel());
+        cJSON_AddBoolToObject(root, "hasSwapped", hasSwapped);
     
         // Save additional variables
-        json_object_set_new(root, "lastWallKickApplied", json_boolean(lastWallKickApplied));  // New
-        json_object_set_new(root, "previousClearWasTetris", json_boolean(previousClearWasTetris));  // New
-        json_object_set_new(root, "previousClearWasTSpin", json_boolean(previousClearWasTSpin));  // New
-        json_object_set_new(root, "backToBackCount", json_integer(backToBackCount));  // New
-
+        cJSON_AddBoolToObject(root, "lastWallKickApplied", lastWallKickApplied);
+        cJSON_AddBoolToObject(root, "previousClearWasTetris", previousClearWasTetris);
+        cJSON_AddBoolToObject(root, "previousClearWasTSpin", previousClearWasTSpin);
+        cJSON_AddNumberToObject(root, "backToBackCount", backToBackCount);
+    
         // Save current Tetrimino
-        json_t* currentTetriminoJson = json_object();
-        json_object_set_new(currentTetriminoJson, "type", json_integer(currentTetrimino.type));
-        json_object_set_new(currentTetriminoJson, "rotation", json_integer(currentTetrimino.rotation));
-        json_object_set_new(currentTetriminoJson, "x", json_integer(currentTetrimino.x));
-        json_object_set_new(currentTetriminoJson, "y", json_integer(currentTetrimino.y));
-        json_object_set_new(root, "currentTetrimino", currentTetriminoJson);
+        cJSON* currentTetriminoJson = cJSON_CreateObject();
+        cJSON_AddNumberToObject(currentTetriminoJson, "type", currentTetrimino.type);
+        cJSON_AddNumberToObject(currentTetriminoJson, "rotation", currentTetrimino.rotation);
+        cJSON_AddNumberToObject(currentTetriminoJson, "x", currentTetrimino.x);
+        cJSON_AddNumberToObject(currentTetriminoJson, "y", currentTetrimino.y);
+        cJSON_AddItemToObject(root, "currentTetrimino", currentTetriminoJson);
     
         // Save stored Tetrimino
-        json_t* storedTetriminoJson = json_object();
-        json_object_set_new(storedTetriminoJson, "type", json_integer(storedTetrimino.type));
-        json_object_set_new(storedTetriminoJson, "rotation", json_integer(storedTetrimino.rotation));
-        json_object_set_new(storedTetriminoJson, "x", json_integer(storedTetrimino.x));
-        json_object_set_new(storedTetriminoJson, "y", json_integer(storedTetrimino.y));
-        json_object_set_new(root, "storedTetrimino", storedTetriminoJson);
+        cJSON* storedTetriminoJson = cJSON_CreateObject();
+        cJSON_AddNumberToObject(storedTetriminoJson, "type", storedTetrimino.type);
+        cJSON_AddNumberToObject(storedTetriminoJson, "rotation", storedTetrimino.rotation);
+        cJSON_AddNumberToObject(storedTetriminoJson, "x", storedTetrimino.x);
+        cJSON_AddNumberToObject(storedTetriminoJson, "y", storedTetrimino.y);
+        cJSON_AddItemToObject(root, "storedTetrimino", storedTetriminoJson);
     
         // Save next Tetrimino states (including the two new next pieces)
-        json_t* nextTetriminoJson = json_object();
-        json_object_set_new(nextTetriminoJson, "type", json_integer(nextTetrimino.type));
-        json_object_set_new(root, "nextTetrimino", nextTetriminoJson);
+        cJSON* nextTetriminoJson = cJSON_CreateObject();
+        cJSON_AddNumberToObject(nextTetriminoJson, "type", nextTetrimino.type);
+        cJSON_AddItemToObject(root, "nextTetrimino", nextTetriminoJson);
     
-        json_t* nextTetrimino1Json = json_object();
-        json_object_set_new(nextTetrimino1Json, "type", json_integer(nextTetrimino1.type));
-        json_object_set_new(root, "nextTetrimino1", nextTetrimino1Json);
+        cJSON* nextTetrimino1Json = cJSON_CreateObject();
+        cJSON_AddNumberToObject(nextTetrimino1Json, "type", nextTetrimino1.type);
+        cJSON_AddItemToObject(root, "nextTetrimino1", nextTetrimino1Json);
     
-        json_t* nextTetrimino2Json = json_object();
-        json_object_set_new(nextTetrimino2Json, "type", json_integer(nextTetrimino2.type));
-        json_object_set_new(root, "nextTetrimino2", nextTetrimino2Json);
+        cJSON* nextTetrimino2Json = cJSON_CreateObject();
+        cJSON_AddNumberToObject(nextTetrimino2Json, "type", nextTetrimino2.type);
+        cJSON_AddItemToObject(root, "nextTetrimino2", nextTetrimino2Json);
     
         // Save the board state
-        json_t* boardJson = json_array();
+        cJSON* boardJson = cJSON_CreateArray();
         for (int i = 0; i < BOARD_HEIGHT; ++i) {
-            json_t* rowJson = json_array();
+            cJSON* rowJson = cJSON_CreateArray();
             for (int j = 0; j < BOARD_WIDTH; ++j) {
-                json_array_append_new(rowJson, json_integer(board[i][j]));
+                cJSON_AddItemToArray(rowJson, cJSON_CreateNumber(board[i][j]));
             }
-            json_array_append_new(boardJson, rowJson);
+            cJSON_AddItemToArray(boardJson, rowJson);
         }
-        json_object_set_new(root, "board", boardJson);
+        cJSON_AddItemToObject(root, "board", boardJson);
     
         // Write to the file
         std::ofstream file("sdmc:/config/tetris/save_state.json");
         if (file.is_open()) {
-            char* jsonString = json_dumps(root, JSON_INDENT(4));
+            char* jsonString = cJSON_Print(root);
             file << jsonString;
             file.close();
             free(jsonString);
         }
         
-        json_decref(root);
+        cJSON_Delete(root);
     }
-
+    
     void loadGameState() {
-        json_t* root = readJsonFromFile("sdmc:/config/tetris/save_state.json");
+        // Read file content
+        std::ifstream file("sdmc:/config/tetris/save_state.json");
+        if (!file.is_open()) return;
+        
+        std::string jsonContent((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        file.close();
+        
+        cJSON* root = cJSON_Parse(jsonContent.c_str());
         if (!root) return;
         
-        
         // Load general game state
-        const char* scoreStr = json_string_value(json_object_get(root, "score"));
-        const char* maxHighScoreStr = json_string_value(json_object_get(root, "maxHighScore"));
+        cJSON* scoreJson = cJSON_GetObjectItem(root, "score");
+        cJSON* maxHighScoreJson = cJSON_GetObjectItem(root, "maxHighScore");
         
-        if (scoreStr) tetrisElement->setScore(std::stoull(scoreStr));
-        if (maxHighScoreStr) TetrisElement::maxHighScore = std::stoull(maxHighScoreStr);
+        if (cJSON_IsString(scoreJson)) tetrisElement->setScore(std::stoull(scoreJson->valuestring));
+        if (cJSON_IsString(maxHighScoreJson)) TetrisElement::maxHighScore = std::stoull(maxHighScoreJson->valuestring);
         
-        TetrisElement::paused = json_is_true(json_object_get(root, "paused"));
-        tetrisElement->gameOver = json_is_true(json_object_get(root, "gameOver"));
-
-        tetrisElement->setLinesCleared(json_integer_value(json_object_get(root, "linesCleared")));
-        tetrisElement->setLevel(json_integer_value(json_object_get(root, "level")));
-        hasSwapped = json_is_true(json_object_get(root, "hasSwapped"));
+        cJSON* pausedJson = cJSON_GetObjectItem(root, "paused");
+        if (cJSON_IsBool(pausedJson)) TetrisElement::paused = cJSON_IsTrue(pausedJson);
+        
+        cJSON* gameOverJson = cJSON_GetObjectItem(root, "gameOver");
+        if (cJSON_IsBool(gameOverJson)) tetrisElement->gameOver = cJSON_IsTrue(gameOverJson);
+    
+        cJSON* linesClearedJson = cJSON_GetObjectItem(root, "linesCleared");
+        if (cJSON_IsNumber(linesClearedJson)) tetrisElement->setLinesCleared(linesClearedJson->valueint);
+        
+        cJSON* levelJson = cJSON_GetObjectItem(root, "level");
+        if (cJSON_IsNumber(levelJson)) tetrisElement->setLevel(levelJson->valueint);
+        
+        cJSON* hasSwappedJson = cJSON_GetObjectItem(root, "hasSwapped");
+        if (cJSON_IsBool(hasSwappedJson)) hasSwapped = cJSON_IsTrue(hasSwappedJson);
         
         // Load additional variables
-        lastWallKickApplied = json_is_true(json_object_get(root, "lastWallKickApplied"));  // New
-        previousClearWasTetris = json_is_true(json_object_get(root, "previousClearWasTetris"));  // New
-        previousClearWasTSpin = json_is_true(json_object_get(root, "previousClearWasTSpin"));  // New
-        backToBackCount = json_integer_value(json_object_get(root, "backToBackCount"));  // New
-
+        cJSON* lastWallKickAppliedJson = cJSON_GetObjectItem(root, "lastWallKickApplied");
+        if (cJSON_IsBool(lastWallKickAppliedJson)) lastWallKickApplied = cJSON_IsTrue(lastWallKickAppliedJson);
+        
+        cJSON* previousClearWasTetrisJson = cJSON_GetObjectItem(root, "previousClearWasTetris");
+        if (cJSON_IsBool(previousClearWasTetrisJson)) previousClearWasTetris = cJSON_IsTrue(previousClearWasTetrisJson);
+        
+        cJSON* previousClearWasTSpinJson = cJSON_GetObjectItem(root, "previousClearWasTSpin");
+        if (cJSON_IsBool(previousClearWasTSpinJson)) previousClearWasTSpin = cJSON_IsTrue(previousClearWasTSpinJson);
+        
+        cJSON* backToBackCountJson = cJSON_GetObjectItem(root, "backToBackCount");
+        if (cJSON_IsNumber(backToBackCountJson)) backToBackCount = backToBackCountJson->valueint;
+    
         // Load current Tetrimino
-        json_t* currentTetriminoJson = json_object_get(root, "currentTetrimino");
-        currentTetrimino.type = json_integer_value(json_object_get(currentTetriminoJson, "type"));
-        currentTetrimino.rotation = json_integer_value(json_object_get(currentTetriminoJson, "rotation"));
-        currentTetrimino.x = json_integer_value(json_object_get(currentTetriminoJson, "x"));
-        currentTetrimino.y = json_integer_value(json_object_get(currentTetriminoJson, "y"));
+        cJSON* currentTetriminoJson = cJSON_GetObjectItem(root, "currentTetrimino");
+        if (cJSON_IsObject(currentTetriminoJson)) {
+            cJSON* typeJson = cJSON_GetObjectItem(currentTetriminoJson, "type");
+            if (cJSON_IsNumber(typeJson)) currentTetrimino.type = typeJson->valueint;
+            
+            cJSON* rotationJson = cJSON_GetObjectItem(currentTetriminoJson, "rotation");
+            if (cJSON_IsNumber(rotationJson)) currentTetrimino.rotation = rotationJson->valueint;
+            
+            cJSON* xJson = cJSON_GetObjectItem(currentTetriminoJson, "x");
+            if (cJSON_IsNumber(xJson)) currentTetrimino.x = xJson->valueint;
+            
+            cJSON* yJson = cJSON_GetObjectItem(currentTetriminoJson, "y");
+            if (cJSON_IsNumber(yJson)) currentTetrimino.y = yJson->valueint;
+        }
     
         // Load stored Tetrimino
-        json_t* storedTetriminoJson = json_object_get(root, "storedTetrimino");
-        storedTetrimino.type = json_integer_value(json_object_get(storedTetriminoJson, "type"));
-        storedTetrimino.rotation = json_integer_value(json_object_get(storedTetriminoJson, "rotation"));
-        storedTetrimino.x = json_integer_value(json_object_get(storedTetriminoJson, "x"));
-        storedTetrimino.y = json_integer_value(json_object_get(storedTetriminoJson, "y"));
+        cJSON* storedTetriminoJson = cJSON_GetObjectItem(root, "storedTetrimino");
+        if (cJSON_IsObject(storedTetriminoJson)) {
+            cJSON* typeJson = cJSON_GetObjectItem(storedTetriminoJson, "type");
+            if (cJSON_IsNumber(typeJson)) storedTetrimino.type = typeJson->valueint;
+            
+            cJSON* rotationJson = cJSON_GetObjectItem(storedTetriminoJson, "rotation");
+            if (cJSON_IsNumber(rotationJson)) storedTetrimino.rotation = rotationJson->valueint;
+            
+            cJSON* xJson = cJSON_GetObjectItem(storedTetriminoJson, "x");
+            if (cJSON_IsNumber(xJson)) storedTetrimino.x = xJson->valueint;
+            
+            cJSON* yJson = cJSON_GetObjectItem(storedTetriminoJson, "y");
+            if (cJSON_IsNumber(yJson)) storedTetrimino.y = yJson->valueint;
+        }
     
         // Load next Tetrimino states (including the two new next pieces)
-        json_t* nextTetriminoJson = json_object_get(root, "nextTetrimino");
-        nextTetrimino.type = json_integer_value(json_object_get(nextTetriminoJson, "type"));
+        cJSON* nextTetriminoJson = cJSON_GetObjectItem(root, "nextTetrimino");
+        if (cJSON_IsObject(nextTetriminoJson)) {
+            cJSON* typeJson = cJSON_GetObjectItem(nextTetriminoJson, "type");
+            if (cJSON_IsNumber(typeJson)) nextTetrimino.type = typeJson->valueint;
+        }
     
-        json_t* nextTetrimino1Json = json_object_get(root, "nextTetrimino1");
-        nextTetrimino1.type = json_integer_value(json_object_get(nextTetrimino1Json, "type"));
+        cJSON* nextTetrimino1Json = cJSON_GetObjectItem(root, "nextTetrimino1");
+        if (cJSON_IsObject(nextTetrimino1Json)) {
+            cJSON* typeJson = cJSON_GetObjectItem(nextTetrimino1Json, "type");
+            if (cJSON_IsNumber(typeJson)) nextTetrimino1.type = typeJson->valueint;
+        }
     
-        json_t* nextTetrimino2Json = json_object_get(root, "nextTetrimino2");
-        nextTetrimino2.type = json_integer_value(json_object_get(nextTetrimino2Json, "type"));
+        cJSON* nextTetrimino2Json = cJSON_GetObjectItem(root, "nextTetrimino2");
+        if (cJSON_IsObject(nextTetrimino2Json)) {
+            cJSON* typeJson = cJSON_GetObjectItem(nextTetrimino2Json, "type");
+            if (cJSON_IsNumber(typeJson)) nextTetrimino2.type = typeJson->valueint;
+        }
     
         // Load the board state
-        json_t* boardJson = json_object_get(root, "board");
-        if (json_is_array(boardJson)) {
+        cJSON* boardJson = cJSON_GetObjectItem(root, "board");
+        if (cJSON_IsArray(boardJson)) {
             for (int i = 0; i < BOARD_HEIGHT; ++i) {
-                json_t* rowJson = json_array_get(boardJson, i);
-                if (json_is_array(rowJson)) {
+                cJSON* rowJson = cJSON_GetArrayItem(boardJson, i);
+                if (cJSON_IsArray(rowJson)) {
                     for (int j = 0; j < BOARD_WIDTH; ++j) {
-                        board[i][j] = json_integer_value(json_array_get(rowJson, j));
+                        cJSON* cellJson = cJSON_GetArrayItem(rowJson, j);
+                        if (cJSON_IsNumber(cellJson)) {
+                            board[i][j] = cellJson->valueint;
+                        }
                     }
                 }
             }
         }
     
-        json_decref(root);
+        cJSON_Delete(root);
     }
 
 
@@ -2171,13 +2222,12 @@ private:
 
     }
     
-
+    
     void spawnNewTetrimino() {
         // Move nextTetrimino to currentTetrimino
         currentTetrimino = nextTetrimino;
         
         int rotatedIndex;
-
         // Calculate the width of the current Tetrimino
         int minX = 4, maxX = -1;  // Initialize with the opposite extremes
         for (int i = 0; i < 4; ++i) {
@@ -2205,20 +2255,21 @@ private:
         // Generate a new random piece for nextTetrimino2
         nextTetrimino2 = Tetrimino(rand() % 7);
     
-        // Calculate the topmost row with a block to adjust the starting Y position
-        int topmostRow = 4;  // Start with the assumption that the piece may be 4 rows high
-        for (int i = 0; i < 4; ++i) {
+        // Calculate the bottommost row with a block
+        int bottommostRow = -1;
+        for (int i = 3; i >= 0; --i) {  // Start from bottom and go up
             for (int j = 0; j < 4; ++j) {
                 rotatedIndex = getRotatedIndex(currentTetrimino.type, i, j, currentTetrimino.rotation);
                 if (tetriminoShapes[currentTetrimino.type][rotatedIndex] != 0) {
-                    topmostRow = std::min(topmostRow, i);  // Find the topmost row with a block
-                    break;  // No need to continue checking this row
+                    bottommostRow = i;
+                    break;
                 }
             }
+            if (bottommostRow != -1) break;  // Found the bottommost row
         }
     
-        // Set the initial Y position, adjusted for the topmost block
-        currentTetrimino.y = -topmostRow;  // Allow the piece to start partially off-screen if necessary
+        // Set the Y position so the bottommost blocks are at row 0 (1 block into the board)
+        currentTetrimino.y = -bottommostRow;
     
         // Check if the new Tetrimino is in a valid position
         if (!isPositionValid(currentTetrimino, board)) {
@@ -2226,7 +2277,7 @@ private:
             tetrisElement->gameOver = true;
         }
     }
-
+    
 
 
 
