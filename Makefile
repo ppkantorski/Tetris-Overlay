@@ -55,12 +55,15 @@ include $(DEVKITPRO)/libnx/switch_rules
 #---------------------------------------------------------------------------------
 APP_TITLE	:= Tetris
 APP_AUTHOR	:= ppkantorski
-APP_VERSION	:= 0.3.5
+APP_VERSION	:= 0.3.6
 TARGET	    := tetris
 BUILD	    := build
-SOURCES	    := lib/libultrahand/libultra/source source 
-INCLUDES	:= lib/libultrahand/libultra/include lib/libultrahand/libtesla/include source include
+SOURCES	    := source 
+INCLUDES	:= source include
 NO_ICON	    := 1
+
+# This location should reflect where you place the libultrahand directory (lib can vary between projects).
+include ${TOPDIR}/lib/libultrahand/ultrahand.mk
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -95,7 +98,7 @@ CXXFLAGS := $(CFLAGS) -std=c++23 -Wno-dangling-else -ffast-math -fno-unwind-tabl
 ASFLAGS := $(ARCH)
 LDFLAGS += -specs=$(DEVKITPRO)/libnx/switch.specs $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS := -lcurl -lz -lzzip -lmbedtls -lmbedx509 -lmbedcrypto -ljansson -lnx
+LIBS := -lcurl -lz -lzzip -lmbedtls -lmbedx509 -lmbedcrypto -lnx
 
 CXXFLAGS += -fno-exceptions -ffunction-sections -fdata-sections -fno-rtti
 LDFLAGS += -Wl,--gc-sections -Wl,--as-needed
