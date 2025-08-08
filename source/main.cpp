@@ -60,7 +60,7 @@ std::vector<Particle> particles;
 
 
 // Define the Tetrimino shapes
-const std::array<std::array<size_t, 16>, 7> tetriminoShapes = {{
+constexpr std::array<std::array<size_t, 16>, 7> tetriminoShapes = {{
     // I
     { 0,0,0,0,
       1,1,1,1,
@@ -105,7 +105,7 @@ const std::array<std::array<size_t, 16>, 7> tetriminoShapes = {{
 }};
 
 // Adjusted rotation centers based on official Tetris SRS
-const std::array<std::pair<int, int>, 7> rotationCenters = {{
+constexpr std::array<std::pair<int, int>, 7> rotationCenters = {{
     {1.5f, 1.5f}, // I piece (rotating around the second cell in a 4x4 grid)
     {1, 1}, // J piece
     {1, 1}, // L piece
@@ -116,7 +116,7 @@ const std::array<std::pair<int, int>, 7> rotationCenters = {{
 }};
 
 // Wall kicks for I piece (SRS)
-const std::array<std::array<std::pair<int, int>, 5>, 4> wallKicksI = {{
+constexpr std::array<std::array<std::pair<int, int>, 5>, 4> wallKicksI = {{
     // 0 -> 1, 1 -> 0
     {{ {0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2} }},
     // 1 -> 2, 2 -> 1
@@ -128,7 +128,7 @@ const std::array<std::array<std::pair<int, int>, 5>, 4> wallKicksI = {{
 }};
 
 // Wall kicks for J, L, S, T, Z pieces (SRS)
-const std::array<std::array<std::pair<int, int>, 5>, 4> wallKicksJLSTZ = {{
+constexpr std::array<std::array<std::pair<int, int>, 5>, 4> wallKicksJLSTZ = {{
     // 0 -> 1, 1 -> 0
     {{ {0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2} }},
     // 1 -> 2, 2 -> 1
@@ -141,7 +141,7 @@ const std::array<std::array<std::pair<int, int>, 5>, 4> wallKicksJLSTZ = {{
 
 
 // Define colors for each Tetrimino
-const std::array<tsl::Color, 7> tetriminoColors = {{
+constexpr std::array<tsl::Color, 7> tetriminoColors = {{
     {0x0, 0xE, 0xF, 0xF}, // Cyan - I (R=0, G=F, B=F, A=F)
     {0x2, 0x2, 0xF, 0xF}, // Blue - J (R=0, G=0, B=F, A=F)
     {0xF, 0xA, 0x0, 0xF}, // Orange - L (R=F, G=A, B=0, A=F)
@@ -152,8 +152,8 @@ const std::array<tsl::Color, 7> tetriminoColors = {{
 }};
 
 // Board dimensions
-const int BOARD_WIDTH = 10;
-const int BOARD_HEIGHT = 20;
+constexpr int BOARD_WIDTH = 10;
+constexpr int BOARD_HEIGHT = 20;
 
 // Updated helper function to get rotated index
 int getRotatedIndex(int type, int i, int j, int rotation) {
@@ -173,10 +173,10 @@ int getRotatedIndex(int type, int i, int j, int rotation) {
         return i * 4 + j;
     } else {
         // General case for other pieces
-        float centerX = rotationCenters[type].first;
-        float centerY = rotationCenters[type].second;
-        int relX = j - centerX;
-        int relY = i - centerY;
+        const float centerX = rotationCenters[type].first;
+        const float centerY = rotationCenters[type].second;
+        const int relX = j - centerX;
+        const int relY = i - centerY;
         int rotatedX, rotatedY;
 
         switch (rotation) {
@@ -186,8 +186,8 @@ int getRotatedIndex(int type, int i, int j, int rotation) {
             case 3: rotatedX = relY; rotatedY = -relX; break;
         }
 
-        int finalX = static_cast<int>(round(rotatedX + centerX));
-        int finalY = static_cast<int>(round(rotatedY + centerY));
+        const int finalX = static_cast<int>(round(rotatedX + centerX));
+        const int finalY = static_cast<int>(round(rotatedY + centerY));
 
         // Ensure the rotated index is within the 4x4 grid
         if (finalX < 0 || finalX >= 4 || finalY < 0 || finalY >= 4) return -1;
@@ -286,24 +286,24 @@ public:
 
     virtual void draw(tsl::gfx::Renderer* renderer) override {
         // Center the board in the frame
-        int boardWidthInPixels = BOARD_WIDTH * _w;
-        int boardHeightInPixels = BOARD_HEIGHT * _h;
-        int offsetX = (this->getWidth() - boardWidthInPixels) / 2;
-        int offsetY = (this->getHeight() - boardHeightInPixels) / 2;
+        const int boardWidthInPixels = BOARD_WIDTH * _w;
+        const int boardHeightInPixels = BOARD_HEIGHT * _h;
+        const int offsetX = (this->getWidth() - boardWidthInPixels) / 2;
+        const int offsetY = (this->getHeight() - boardHeightInPixels) / 2;
 
 
         // Define the semi-transparent black background color
-        tsl::Color overlayColor = tsl::Color({0x0, 0x0, 0x0, 0x8}); // Semi-transparent black color
+        static constexpr tsl::Color overlayColor = tsl::Color({0x0, 0x0, 0x0, 0x8}); // Semi-transparent black color
         
         // Draw the black background rectangle (slightly larger than the frame)
-        int backgroundPadding = 4; // Padding around the frame for the black background
+        static constexpr int backgroundPadding = 4; // Padding around the frame for the black background
         renderer->drawRect(offsetX - backgroundPadding, offsetY - backgroundPadding,
                            boardWidthInPixels + 2 * backgroundPadding, boardHeightInPixels + 2 * backgroundPadding, a(overlayColor));
 
 
         // Draw the board frame
-        tsl::Color frameColor = tsl::Color({0xF, 0xF, 0xF, 0xF}); // White color for frame
-        int frameThickness = 2;
+        static constexpr tsl::Color frameColor = tsl::Color({0xF, 0xF, 0xF, 0xF}); // White color for frame
+        static constexpr int frameThickness = 2;
         
         // Top line
         renderer->drawRect(offsetX - frameThickness, offsetY - frameThickness, BOARD_WIDTH * _w + 2 * frameThickness, frameThickness, frameColor);
@@ -315,7 +315,7 @@ public:
         renderer->drawRect(offsetX + BOARD_WIDTH * _w, offsetY - frameThickness, frameThickness, BOARD_HEIGHT * _h + 2 * frameThickness, frameColor);
 
 
-        int innerPadding = 3; // Adjust this to control the inner rectangle size
+        static constexpr int innerPadding = 3; // Adjust this to control the inner rectangle size
 
         // Draw the board
         int drawX, drawY;
@@ -360,11 +360,14 @@ public:
 
         score.str(std::string());
         score << "Score\n" << getScore();
-        renderer->drawString(score.str().c_str(), false, 64, 124, 20, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+
+        static constexpr auto whiteColor = tsl::Color({0xF, 0xF, 0xF, 0xF});
+
+        renderer->drawString(score.str().c_str(), false, 64, 124, 20, whiteColor);
         
         highScore.str(std::string());
         highScore << "High Score\n" << maxHighScore;
-        renderer->drawString(highScore.str().c_str(), false, 268, 124, 20, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        renderer->drawString(highScore.str().c_str(), false, 268, 124, 20, whiteColor);
 
 
         // Draw the stored Tetrimino
@@ -375,24 +378,24 @@ public:
         
         drawNextTwoTetriminos(renderer, offsetX + BOARD_WIDTH * _w + 12, offsetY + BORDER_HEIGHT + 12);
 
-        renderer->drawString("", false, offsetX - 85, offsetY + (BORDER_HEIGHT + 12)*0.5 +1, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        renderer->drawString("", false, offsetX - 85, offsetY + (BORDER_HEIGHT + 12)*0.5 +1, 18, whiteColor);
 
-        renderer->drawString("", false, offsetX + BOARD_WIDTH * _w + 64, offsetY + (BORDER_HEIGHT + 12)*0.5, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
-        renderer->drawString("", false, offsetX + BOARD_WIDTH * _w + 64, offsetY + (BORDER_HEIGHT + 12)*1.5, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
-        renderer->drawString("", false, offsetX + BOARD_WIDTH * _w + 64, offsetY + (BORDER_HEIGHT + 12)*2.5, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        renderer->drawString("", false, offsetX + BOARD_WIDTH * _w + 64, offsetY + (BORDER_HEIGHT + 12)*0.5, 18, whiteColor);
+        renderer->drawString("", false, offsetX + BOARD_WIDTH * _w + 64, offsetY + (BORDER_HEIGHT + 12)*1.5, 18, whiteColor);
+        renderer->drawString("", false, offsetX + BOARD_WIDTH * _w + 64, offsetY + (BORDER_HEIGHT + 12)*2.5, 18, whiteColor);
 
         // Draw the number of lines cleared
         ult::StringStream linesStr;
         linesStr << "Lines\n" << linesCleared;
-        renderer->drawString(linesStr.str().c_str(), false, offsetX + BOARD_WIDTH * _w + 14, offsetY + (BORDER_HEIGHT + 12)*3 + 18, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        renderer->drawString(linesStr.str().c_str(), false, offsetX + BOARD_WIDTH * _w + 14, offsetY + (BORDER_HEIGHT + 12)*3 + 18, 18, whiteColor);
         
         // Draw the current level
         ult::StringStream levelStr;
         levelStr << "Level\n" << level;
-        renderer->drawString(levelStr.str().c_str(), false, offsetX + BOARD_WIDTH * _w + 14, offsetY + (BORDER_HEIGHT + 12)*3 + 63, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        renderer->drawString(levelStr.str().c_str(), false, offsetX + BOARD_WIDTH * _w + 14, offsetY + (BORDER_HEIGHT + 12)*3 + 63, 18, whiteColor);
         
 
-        renderer->drawString("", false, 74, offsetY + 74, 18, tsl::Color({0xF, 0xF, 0xF, 0xF}));
+        renderer->drawString("", false, 74, offsetY + 74, 18, whiteColor);
 
         std::lock_guard<std::mutex> lock(boardMutex);  // Lock the mutex while rendering
         
@@ -414,8 +417,8 @@ public:
             renderer->drawRect(offsetX, offsetY, boardWidthInPixels, boardHeightInPixels, tsl::Color({0x0, 0x0, 0x0, 0xA}));
             
             // Calculate the center position of the board
-            int centerX = offsetX + (BOARD_WIDTH * _w) / 2;
-            int centerY = offsetY + (BOARD_HEIGHT * _h) / 2;
+            const int centerX = offsetX + (BOARD_WIDTH * _w) / 2;
+            const int centerY = offsetY + (BOARD_HEIGHT * _h) / 2;
             
 
 
@@ -434,7 +437,7 @@ public:
                     }
                     
                     // Calculate the time since game over was triggered
-                    auto elapsedTime = std::chrono::steady_clock::now() - gameOverStartTime;
+                    const auto elapsedTime = std::chrono::steady_clock::now() - gameOverStartTime;
                     
                     // If 0.5 seconds have passed, display the "Game Over" text
                     if (elapsedTime >= std::chrono::milliseconds(500)) {
@@ -445,20 +448,20 @@ public:
                 // If the game over text is set to be displayed, draw it
                 if (gameOverTextDisplayed) {
                     // Set the text color to red
-                    tsl::Color redColor = tsl::Color({0xF, 0x0, 0x0, 0xF});
+                    static constexpr tsl::Color redColor = tsl::Color({0xF, 0x0, 0x0, 0xF});
                     
                     // Calculate text width to center the text
-                    int textWidth = tsl::gfx::calculateStringWidth("Game Over", 24);
+                    const int textWidth = tsl::gfx::calculateStringWidth("Game Over", 24);
                     
                     // Draw "Game Over" at the center of the board
                     renderer->drawString("Game Over", false, centerX - textWidth / 2, centerY, 24, redColor);
                 }
             } else if (paused) {
                 // Set the text color to green
-                tsl::Color greenColor = tsl::Color({0x0, 0xF, 0x0, 0xF});
+                static constexpr tsl::Color greenColor = tsl::Color({0x0, 0xF, 0x0, 0xF});
                 
                 // Calculate text width to center the text
-                int textWidth = tsl::gfx::calculateStringWidth("Paused", 24);
+                const int textWidth = tsl::gfx::calculateStringWidth("Paused", 24);
                 
                 // Draw "Paused" at the center of the board
                 renderer->drawString("Paused", false, centerX - textWidth / 2, centerY, 24, greenColor);
@@ -476,38 +479,38 @@ public:
             
 
             // Calculate the center position of the board
-            int centerX = offsetX + (BOARD_WIDTH * _w) / 2;
-            int centerY = offsetY + (BOARD_HEIGHT * _h) / 2;
+            const int centerX = offsetX + (BOARD_WIDTH * _w) / 2;
+            const int centerY = offsetY + (BOARD_HEIGHT * _h) / 2;
 
             renderer->drawRect(offsetX, centerY - 22, boardWidthInPixels, 26, tsl::Color({0x0, 0x0, 0x0, 0x5}));
 
             // Calculate text width to center the text
-            std::string scoreLine = "+" + std::to_string(linesClearedScore);
-            int textWidth = tsl::gfx::calculateStringWidth(scoreLine, 20);
+            const std::string scoreLine = "+" + std::to_string(linesClearedScore);
+            const int textWidth = tsl::gfx::calculateStringWidth(scoreLine, 20);
             renderer->drawString(scoreLine, false, centerX - textWidth / 2, centerY, 20, tsl::Color({0x0, 0xF, 0x0, 0xF}));
 
 
-            auto currentTime = std::chrono::steady_clock::now();
+            const auto currentTime = std::chrono::steady_clock::now();
             std::chrono::duration<float, std::milli> elapsedTime = currentTime - textStartTime;
             
             // Define the durations for each phase
-            float scrollInDuration = 300.0f;  // 0.3 seconds to scroll in
-            float pauseDuration = 1000.0f;    // 1 second pause
-            float scrollOutDuration = 300.0f; // 0.3 seconds to scroll out
-            float totalDuration = scrollInDuration + pauseDuration + scrollOutDuration;
+            static constexpr float scrollInDuration = 300.0f;  // 0.3 seconds to scroll in
+            static constexpr float pauseDuration = 1000.0f;    // 1 second pause
+            static constexpr float scrollOutDuration = 300.0f; // 0.3 seconds to scroll out
+            const float totalDuration = scrollInDuration + pauseDuration + scrollOutDuration;
             
             // Calculate board dimensions
-            int boardWidthInPixels = BOARD_WIDTH * _w +2; // +2 to account for padding
-            int boardHeightInPixels = BOARD_HEIGHT * _h;
-            int offsetX = (this->getWidth() - boardWidthInPixels) / 2;  // Horizontal offset to center the board
-            int offsetY = (this->getHeight() - boardHeightInPixels) / 2; // Vertical offset to center the board
+            const int boardWidthInPixels = BOARD_WIDTH * _w +2; // +2 to account for padding
+            const int boardHeightInPixels = BOARD_HEIGHT * _h;
+            const int offsetX = (this->getWidth() - boardWidthInPixels) / 2;  // Horizontal offset to center the board
+            const int offsetY = (this->getHeight() - boardHeightInPixels) / 2; // Vertical offset to center the board
             
             // Font size for non-Tetris text
-            int regularFontSize = 20;
-            int dynamicFontSize = 24;
+            static constexpr int regularFontSize = 20;
+            static constexpr int dynamicFontSize = 24;
             
             // Calculate the Y position of the text (vertically centered on the board)
-            int textY = offsetY + (boardHeightInPixels / 2);
+            const int textY = offsetY + (boardHeightInPixels / 2);
             
             // Calculate the X position of the text based on the phase
             int textX;
@@ -547,12 +550,12 @@ public:
             
             // Handle the sliding phases
             if (elapsedTime.count() < scrollInDuration) {
-                float progress = elapsedTime.count() / scrollInDuration;
+                const float progress = elapsedTime.count() / scrollInDuration;
                 textX = offsetX - (progress) * totalTextWidth;  // Move left from hidden to fully visible
             } else if (elapsedTime.count() < scrollInDuration + pauseDuration) {
                 textX = offsetX - totalTextWidth;  // Fully visible, just to the left of the gameboard
             } else if (elapsedTime.count() < totalDuration) {
-                float progress = (elapsedTime.count() - scrollInDuration - pauseDuration) / scrollOutDuration;
+                const float progress = (elapsedTime.count() - scrollInDuration - pauseDuration) / scrollOutDuration;
                 textX = offsetX - totalTextWidth + progress * totalTextWidth;  // Move right, getting scissored
             } else {
                 // End the animation after the total duration
@@ -563,27 +566,27 @@ public:
             // Enable scissoring to clip the text at the left edge of the gameboard
             renderer->enableScissoring(0, offsetY, offsetX, boardHeightInPixels);
             
-            tsl::Color textColor(0xF, 0xF, 0xF, 0xF);  // White text for non-Tetris strings
-            auto currentTimeCount = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+            static constexpr tsl::Color textColor(0xF, 0xF, 0xF, 0xF);  // White text for non-Tetris strings
+            const auto currentTimeCount = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
             static auto dynamicLogoRGB1 = tsl::RGB888("#6929ff");
             static auto dynamicLogoRGB2 = tsl::RGB888("#fff429");
             countOffset = 0.0f;
             
-            tsl::Color highlightColor(0);
+            static tsl::Color highlightColor(0);
             float counter, transitionProgress;
             
             int charWidth;
             // Handle "2x Tetris" special case
             if (linesClearedText.find("x Tetris") != std::string::npos) {
                 //std::string prefix = "2x ";
-                size_t xPos = linesClearedText.find("x Tetris");
-                std::string prefix = linesClearedText.substr(0, xPos + 2);  // Get the "2x " or "10x "
-                int prefixWidth = tsl::gfx::calculateStringWidth(prefix.c_str(), regularFontSize);
+                const size_t xPos = linesClearedText.find("x Tetris");
+                const std::string prefix = linesClearedText.substr(0, xPos + 2);  // Get the "2x " or "10x "
+                const int prefixWidth = tsl::gfx::calculateStringWidth(prefix.c_str(), regularFontSize);
                 tsl::Color whiteColor(0xF, 0xF, 0xF, 0xF);
                 renderer->drawString(prefix.c_str(), false, textX, textY, regularFontSize, whiteColor);
                 textX += prefixWidth;
                 
-                std::string remainingText = "Tetris";
+                static const std::string remainingText = "Tetris";
                 
                 for (char letter : remainingText) {
                     counter = (2 * _M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
@@ -624,8 +627,8 @@ public:
             } else if (linesClearedText.find("\n") != std::string::npos) {
                 // Handle multiline text (e.g., "T-Spin\nSingle")
                 std::vector<std::string> lines = splitString(linesClearedText, "\n");
-                int lineSpacing = regularFontSize + 4;
-                int totalHeight = lines.size() * lineSpacing;
+                const int lineSpacing = regularFontSize + 4;
+                const int totalHeight = lines.size() * lineSpacing;
                 int startY = textY - (totalHeight / 2);
                 
                 // Find the maximum width
@@ -757,13 +760,13 @@ private:
 
     // Helper function to draw a single Tetrimino (handles both ghost and normal rendering)
     void drawSingleTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tet, int offsetX, int offsetY, bool isGhost) {
-        tsl::Color color(0);
-        tsl::Color outerColor(0);
-        tsl::Color highlightColor(0);
+        static tsl::Color color(0);
+        static tsl::Color outerColor(0);
+        static tsl::Color highlightColor(0);
         int rotatedIndex;
         int x, y;
         
-        int innerPadding = 3;  // Adjust padding for a more balanced 3D look
+        static constexpr int innerPadding = 3;  // Adjust padding for a more balanced 3D look
         
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
@@ -814,7 +817,7 @@ private:
     void drawTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tet, int offsetX, int offsetY) {
         // Calculate the drop position for the ghost piece
         Tetrimino ghostTetrimino = tet;
-        int dropDistance = calculateDropDistance(ghostTetrimino, *board);
+        const int dropDistance = calculateDropDistance(ghostTetrimino, *board);
         ghostTetrimino.y += dropDistance;
         
         // Draw the ghost piece first (semi-transparent)
@@ -827,15 +830,15 @@ private:
     // Constants for borders and padding
     const int BORDER_WIDTH = _w * 2 + 8;
     const int BORDER_HEIGHT = _w * 2 + 8;
-    const int BORDER_THICKNESS = 2;
-    const int PADDING = 2;
-    const tsl::Color BACKGROUND_COLOR = {0x0, 0x0, 0x0, 0x8};
-    const tsl::Color BORDER_COLOR = {0xF, 0xF, 0xF, 0xF};
+    static constexpr int BORDER_THICKNESS = 2;
+    static constexpr int PADDING = 2;
+    static constexpr tsl::Color BACKGROUND_COLOR = {0x0, 0x0, 0x0, 0x8};
+    static constexpr tsl::Color BORDER_COLOR = {0xF, 0xF, 0xF, 0xF};
     
     // Helper function to draw a 3D block with highlight and shadow
     void draw3DBlock(tsl::gfx::Renderer* renderer, int x, int y, int width, int height, tsl::Color color) {
         // Calculate outer block color (darker than the original color)
-        tsl::Color outerColor = {
+        const tsl::Color outerColor = {
             static_cast<u8>(color.r * 0xC / 0xF),  // Slightly darker, closer to 60% brightness
             static_cast<u8>(color.g * 0xC / 0xF),
             static_cast<u8>(color.b * 0xC / 0xF),
@@ -846,11 +849,11 @@ private:
         renderer->drawRect(x, y, width, height, outerColor);
         
         // Draw the inner block (original color)
-        int innerPadding = 1;
+        static constexpr int innerPadding = 1;
         renderer->drawRect(x + innerPadding, y + innerPadding, width - 2 * innerPadding, height - 2 * innerPadding, color);
         
         // Highlight at the top-left corner (lighter shade)
-        tsl::Color highlightColor = {
+        const tsl::Color highlightColor = {
             static_cast<u8>(std::min(color.r + 0x4, 0xF)),  // Slightly lighter than the original color
             static_cast<u8>(std::min(color.g + 0x4, 0xF)),
             static_cast<u8>(std::min(color.b + 0x4, 0xF)),
@@ -897,20 +900,20 @@ private:
     
     // Helper function to draw a centered Tetrimino
     void drawCenteredTetrimino(tsl::gfx::Renderer* renderer, const Tetrimino& tetrimino, int posX, int posY) {
-        int minX, maxX, minY, maxY;
+        static int minX, maxX, minY, maxY;
         calculateTetriminoBounds(tetrimino, minX, maxX, minY, maxY);
         
         // Calculate width and height of the Tetrimino
-        float tetriminoWidth = (maxX - minX + 1) * (_w / 2);
-        float tetriminoHeight = (maxY - minY + 1) * (_h / 2);
+        const float tetriminoWidth = (maxX - minX + 1) * (_w / 2);
+        const float tetriminoHeight = (maxY - minY + 1) * (_h / 2);
         
         // Center the Tetrimino in the preview area
-        int offsetX = std::ceil((BORDER_WIDTH - tetriminoWidth) / 2. - 2.);
-        int offsetY = std::ceil((BORDER_HEIGHT - tetriminoHeight) / 2. - 2.);
+        const int offsetX = std::ceil((BORDER_WIDTH - tetriminoWidth) / 2. - 2.);
+        const int offsetY = std::ceil((BORDER_HEIGHT - tetriminoHeight) / 2. - 2.);
         
-        int blockWidth, blockHeight, drawX, drawY;
+        static int blockWidth, blockHeight, drawX, drawY;
         
-        int index;
+        static int index;
         // Draw each block of the Tetrimino
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
@@ -939,7 +942,7 @@ private:
     
     // Updated method to draw the next two Tetriminos
     void drawNextTwoTetriminos(tsl::gfx::Renderer* renderer, int posX, int posY) {
-        int posY2 = posY + BORDER_HEIGHT + 12;
+        const int posY2 = posY + BORDER_HEIGHT + 12;
         
         // Draw the first next Tetrimino with frame and centered logic
         drawPreviewFrame(renderer, posX, posY);
@@ -1000,12 +1003,12 @@ public:
         countOffset = 0;
         
 
-        if (!tsl::disableColorfulLogo) {
-            auto currentTimeCount = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+        if (ult::useDynamicLogo) {
+            const auto currentTimeCount = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
             float progress;
-            static auto dynamicLogoRGB1 = tsl::RGB888("#6929ff");
-            static auto dynamicLogoRGB2 = tsl::RGB888("#fff429");
-            tsl::Color highlightColor(0);
+            static const auto dynamicLogoRGB1 = tsl::RGB888("#6929ff");
+            static const auto dynamicLogoRGB2 = tsl::RGB888("#fff429");
+            static tsl::Color highlightColor(0);
             for (char letter : m_title) {
                 counter = (2 * _M_PI * (fmod(currentTimeCount/4.0, 2.0) + countOffset) / 2.0);
                 progress = std::sin(3.0 * (counter - (2.0 * _M_PI / 3.0))); // Faster transition from -1 to 1 and back in the remaining 1/3
@@ -1030,9 +1033,9 @@ public:
         }
         
 
-        renderer->drawString(this->m_subtitle, false, 184, y-8, 15, a(tsl::versionTextColor));
+        renderer->drawString(this->m_subtitle, false, 184, y-8, 15, (tsl::bannerVersionTextColor));
         
-        renderer->drawRect(15, tsl::cfg::FramebufferHeight - 73, tsl::cfg::FramebufferWidth - 30, 1, a(tsl::botttomSeparatorColor));
+        renderer->drawRect(15, tsl::cfg::FramebufferHeight - 73, tsl::cfg::FramebufferWidth - 30, 1, a(tsl::bottomSeparatorColor));
         
 
         static std::string bCommand;
@@ -1077,11 +1080,7 @@ public:
             }
         }
 
-
-        if (m_noClickableItems)
-            menuBottomLine = "\uE0E1"+GAP_2+bCommand+GAP_1;
-        else
-            menuBottomLine = "\uE0E1"+GAP_2+bCommand+GAP_1+"\uE0E0"+GAP_2+aCommand+GAP_1;
+        const std::string menuBottomLine = m_noClickableItems ? "\uE0E1"+GAP_2+bCommand+GAP_1 : "\uE0E1"+GAP_2+bCommand+GAP_1+"\uE0E0"+GAP_2+aCommand+GAP_1;
 
         //if (this->m_menuMode == "packages") {
         //    menuBottomLine += "\uE0ED"+GAP_2+OVERLAYS;
@@ -1097,8 +1096,8 @@ public:
         
         
         // Render the text with special character handling
-        static std::vector<std::string> symbols = {"\uE0E1","\uE0E0","\uE0ED","\uE0EE"};
-        renderer->drawStringWithColoredSections(menuBottomLine, false, symbols, 30, 693, 23, a(tsl::bottomTextColor), a(tsl::buttonColor));
+        static const std::vector<std::string> symbols = {"\uE0E1","\uE0E0","\uE0ED","\uE0EE"};
+        renderer->drawStringWithColoredSections(menuBottomLine, false, symbols, 30, 693, 23, (tsl::bottomTextColor), (tsl::buttonColor));
 
         
         if (this->m_contentElement != nullptr)
@@ -1113,11 +1112,11 @@ public:
     bool hasSwapped = false; // To track if a swap has already occurred
 
     int linesClearedForLevelUp = 0;  // Track how many lines cleared for leveling up
-    const int LINES_PER_LEVEL = 10;  // Increment level every 10 lines
+    static constexpr int LINES_PER_LEVEL = 10;  // Increment level every 10 lines
 
     // Variables to track time of last rotation or movement
     std::chrono::time_point<std::chrono::steady_clock> lastRotationOrMoveTime;
-    const std::chrono::milliseconds lockDelayExtension = std::chrono::milliseconds(500); // 500ms extension
+    static constexpr std::chrono::milliseconds lockDelayExtension = std::chrono::milliseconds(500); // 500ms extension
 
     TetrisGui() : board(), currentTetrimino(rand() % 7), nextTetrimino(rand() % 7), 
                   nextTetrimino1(rand() % 7), nextTetrimino2(rand() % 7) {
@@ -1152,8 +1151,8 @@ public:
 
     virtual void update() override {
         if (!TetrisElement::paused && !tetrisElement->gameOver) {
-            auto currentTime = std::chrono::steady_clock::now();
-            auto elapsed = currentTime - timeSinceLastFrame;
+            const auto currentTime = std::chrono::steady_clock::now();
+            const auto elapsed = currentTime - timeSinceLastFrame;
 
             // Handle piece falling
             fallCounter += std::chrono::duration_cast<std::chrono::milliseconds>(elapsed);
@@ -1163,7 +1162,7 @@ public:
                     lockDelayCounter += fallCounter; // Add elapsed time to lock delay counter
 
                     // Check if more than 500ms has passed since the last move/rotation
-                    auto timeSinceLastRotationOrMove = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastRotationOrMoveTime);
+                    const auto timeSinceLastRotationOrMove = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastRotationOrMoveTime);
 
                     if (lockDelayCounter >= lockDelayTime && timeSinceLastRotationOrMove >= lockDelayExtension) {
                         // Lock the piece after the lock delay has passed and no rotation occurred recently
@@ -1251,18 +1250,18 @@ public:
         std::lock_guard<std::mutex> lock(particleMutex);  // Lock to ensure safe access to the particle list
         
         // Cap the maximum drop distance to avoid excessive velocity
-        float velocityFactor = std::min(dropDistance / 10.0f, 2.0f);  // Adjust the divisor and cap for desired effect
+        const float velocityFactor = std::min(dropDistance / 10.0f, 2.0f);  // Adjust the divisor and cap for desired effect
         
         // Set minimum and maximum horizontal and vertical velocities
-        float minVelocity = 0.5f;  // Minimum velocity value
-        float maxHorizontalVelocity = 2.0f * velocityFactor;
-        float maxVerticalVelocity = 4.0f * velocityFactor;
+        static constexpr float minVelocity = 0.5f;  // Minimum velocity value
+        const float maxHorizontalVelocity = 2.0f * velocityFactor;
+        const float maxVerticalVelocity = 4.0f * velocityFactor;
         
         // Calculate lifespan based on drop distance with a minimum of 0.2 and a maximum of 0.6
-        float lifespanFactor = std::clamp(dropDistance / 20.0f, 0.2f, 0.6f);
+        const float lifespanFactor = std::clamp(dropDistance / 20.0f, 0.2f, 0.6f);
         
         // Calculate the number of particles based on drop distance, clamped between 2 and 5 particles
-        int particleCount = std::clamp(2 + dropDistance / 5, 2, 5);
+        const int particleCount = std::clamp(2 + dropDistance / 5, 2, 5);
 
         int bottomRow;
         int rotatedIndex;
@@ -1314,7 +1313,7 @@ public:
         currentTetrimino.y += hardDropDistance;
         
         // Award points for hard drop (e.g., 2 points per row)
-        int hardDropScore = hardDropDistance * 2;
+        const int hardDropScore = hardDropDistance * 2;
         tetrisElement->setScore(tetrisElement->getScore() + hardDropScore);
         
         createImpactParticles(hardDropDistance);
@@ -1395,25 +1394,38 @@ public:
         cJSON_AddItemToObject(root, "board", boardJson);
     
         // Write to the file
-        std::ofstream file("sdmc:/config/tetris/save_state.json");
-        if (file.is_open()) {
+        FILE* file = fopen("sdmc:/config/tetris/save_state.json", "w");
+        if (file) {
             char* jsonString = cJSON_Print(root);
-            file << jsonString;
-            file.close();
-            free(jsonString);
+            if (jsonString) {
+                fwrite(jsonString, 1, strlen(jsonString), file);
+                free(jsonString);
+            }
+            fclose(file);
         }
         
         cJSON_Delete(root);
     }
     
     void loadGameState() {
+        // Open file using C-style file I/O
+        FILE* file = fopen("sdmc:/config/tetris/save_state.json", "r");
+        if (!file) return;
+        
+        // Get file size
+        fseek(file, 0, SEEK_END);
+        long fileSize = ftell(file);
+        fseek(file, 0, SEEK_SET);
+        
         // Read file content
-        std::ifstream file("sdmc:/config/tetris/save_state.json");
-        if (!file.is_open()) return;
+        std::string jsonContent;
+        jsonContent.resize(fileSize);
+        size_t bytesRead = fread(&jsonContent[0], 1, fileSize, file);
+        fclose(file);
         
-        std::string jsonContent((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        file.close();
-        
+        // Resize string to actual bytes read (in case of early EOF)
+        jsonContent.resize(bytesRead);
+            
         cJSON* root = cJSON_Parse(jsonContent.c_str());
         if (!root) return;
         
@@ -1524,8 +1536,8 @@ public:
 
 
     // Define constants for DAS (Delayed Auto-Shift) and ARR (Auto-Repeat Rate)
-    const int DAS = 300;  // DAS delay in milliseconds
-    const int ARR = 40;   // ARR interval in milliseconds
+    static constexpr int DAS = 300;  // DAS delay in milliseconds
+    static constexpr int ARR = 40;   // ARR interval in milliseconds
     
     // Variables to track key hold states and timing
     std::chrono::time_point<std::chrono::steady_clock> lastLeftMove, lastRightMove, lastDownMove;
@@ -1533,7 +1545,7 @@ public:
     bool leftARR = false, rightARR = false, downARR = false;
     
     bool handleInput(u64 keysDown, u64 keysHeld, touchPosition touchInput, JoystickPosition leftJoyStick, JoystickPosition rightJoyStick) override {
-        auto currentTime = std::chrono::steady_clock::now();
+        const auto currentTime = std::chrono::steady_clock::now();
         bool moved = false;
     
         // Handle the rest of the input only if the game is not paused and not over
@@ -1617,7 +1629,7 @@ public:
                     rightARR = false; // Reset ARR phase
                 } else {
                     // DAS check
-                    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastRightMove).count();
+                    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastRightMove).count();
                     if (!rightARR && elapsed >= DAS) {
                         // Once DAS is reached, start ARR
                         moved = move(1, 0);
@@ -1649,7 +1661,7 @@ public:
     
                 } else {
                     // DAS check
-                    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastDownMove).count();
+                    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastDownMove).count();
                     if (!downARR && elapsed >= DAS) {
                         if (isOnFloor()) {
                             hardDrop();
@@ -1726,7 +1738,7 @@ private:
     int totalSoftDropDistance = 0;  // Tracks the number of rows dropped for soft drops
     int hardDropDistance = 0;       // Tracks the number of rows dropped for hard drops
 
-    int maxLockDelayMoves = 15;  // Maximum number of times the player can move left/right before the piece locks
+    static constexpr int maxLockDelayMoves = 15;  // Maximum number of times the player can move left/right before the piece locks
     int lockDelayMoves = 0;  // Number of times the player has moved left/right since the piece hit the ground
 
     // Add a member variable to track if a wall kick was applied
@@ -1747,7 +1759,7 @@ private:
     // Function to dynamically calculate fall speed based on the current level
     std::chrono::milliseconds getFallSpeed() {
         // Define the fall speeds in milliseconds based on levels (simulating classic Tetris)
-        static const std::array<int, 30> fallSpeeds = {
+        static constexpr std::array<int, 30> fallSpeeds = {
             800, // Level 0: 800ms per row drop
             720, // Level 1
             630, // Level 2
@@ -1781,10 +1793,10 @@ private:
         };
     
         // Get the appropriate fall speed for the current level, clamping if necessary
-        int level = std::min(tetrisElement->getLevel(), static_cast<int>(fallSpeeds.size() - 1));
+        const int level = std::min(tetrisElement->getLevel(), static_cast<int>(fallSpeeds.size() - 1));
         
         // Set a minimum threshold for fall speed to avoid it becoming too fast
-        int fallSpeed = std::max(fallSpeeds[level], 16); // Minimum 16ms
+        const int fallSpeed = std::max(fallSpeeds[level], 16); // Minimum 16ms
         
         return std::chrono::milliseconds(fallSpeed);
     }
@@ -1875,9 +1887,9 @@ private:
     void rotatePiece(int direction) {
         std::lock_guard<std::mutex> lock(boardMutex);  // Lock the board for safe rotation
         
-        int previousRotation = currentTetrimino.rotation;
-        int previousX = currentTetrimino.x;
-        int previousY = currentTetrimino.y;
+        const int previousRotation = currentTetrimino.rotation;
+        const int previousX = currentTetrimino.x;
+        const int previousY = currentTetrimino.y;
         
         // Perform rotation
         currentTetrimino.rotation = (currentTetrimino.rotation + direction + 4) % 4;
@@ -1914,7 +1926,7 @@ private:
     
             // If standard kicks fail, try extra kicks in tight spaces
             if (!rotationSuccessful) {
-                static const std::array<std::pair<int, int>, 7> extraKicks = {{ {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2}, {2, 0}, {-2, 0} }};
+                static constexpr std::array<std::pair<int, int>, 7> extraKicks = {{ {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2}, {2, 0}, {-2, 0} }};
                 for (const auto& kick : extraKicks) {
                     currentTetrimino.x = previousX + kick.first;
                     currentTetrimino.y = previousY + kick.second;
@@ -1970,8 +1982,8 @@ private:
         if (currentTetrimino.type != 5) return false; // Only T piece can T-Spin
     
         // Check corners around the T piece center
-        int centerX = currentTetrimino.x + 1;
-        int centerY = currentTetrimino.y + 1;
+        const int centerX = currentTetrimino.x + 1;
+        const int centerY = currentTetrimino.y + 1;
         int blockedCorners = 0;
     
         // Check four corners
@@ -2028,7 +2040,7 @@ private:
     
         // Award points for soft drops (apply accumulated points)
         if (totalSoftDropDistance > 0) {
-            int softDropScore = totalSoftDropDistance * 1;  // 1 point per row for soft drops
+            const int softDropScore = totalSoftDropDistance * 1;  // 1 point per row for soft drops
             tetrisElement->setScore(tetrisElement->getScore() + softDropScore);
         }
     
@@ -2130,7 +2142,7 @@ private:
             float backToBackBonus = 1.0f;
         
             // Handle back-to-back bonus
-            bool isBackToBack = (previousClearWasTetris || previousClearWasTSpin) &&
+            const bool isBackToBack = (previousClearWasTetris || previousClearWasTSpin) &&
                                 (linesClearedInThisTurn == 4 || isTSpin());
         
 
@@ -2173,7 +2185,7 @@ private:
             }
         
             // Multiply base score by the current level
-            int newScore = baseScore * tetrisElement->getLevel();
+            const int newScore = baseScore * tetrisElement->getLevel();
             tetrisElement->setScore(tetrisElement->getScore() + newScore);
         
             // Store the score for the current lines-cleared move in linesClearedScore
@@ -2241,7 +2253,7 @@ private:
         }
     
         // Calculate the actual width of the Tetrimino
-        int pieceWidth = maxX - minX + 1;
+        const int pieceWidth = maxX - minX + 1;
     
         // Set the X position to center the Tetrimino on the board
         currentTetrimino.x = (BOARD_WIDTH - pieceWidth) / 2 - minX;
