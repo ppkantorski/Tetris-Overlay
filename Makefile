@@ -55,7 +55,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 #---------------------------------------------------------------------------------
 APP_TITLE	:= Tetris
 APP_AUTHOR	:= ppkantorski
-APP_VERSION	:= 0.3.6
+APP_VERSION	:= 0.3.7
 TARGET	    := tetris
 BUILD	    := build
 SOURCES	    := source 
@@ -238,6 +238,8 @@ all : $(OUTPUT).ovl
 $(OUTPUT).ovl: $(OUTPUT).elf $(OUTPUT).nacp 
 	@elf2nro $< $@ $(NROFLAGS)
 	@echo "built ... $(notdir $(OUTPUT).ovl)"
+	@printf 'ULTR' >> $@
+	@printf "Ultrahand signature has been added.\n"
 
 
 
