@@ -1128,6 +1128,11 @@ public:
         lastRotationOrMoveTime = std::chrono::steady_clock::now();  // Initialize with current time
     }
 
+    ~TetrisGui() {
+        TetrisElement::paused = true;
+        saveGameState();
+    }
+
     virtual tsl::elm::Element* createUI() override {
         //auto rootFrame = new tsl::elm::OverlayFrame("Tetris", APP_VERSION);
         auto rootFrame = new CustomOverlayFrame("Tetris", APP_VERSION);
@@ -1573,7 +1578,7 @@ public:
             }
             // Allow closing the overlay with KEY_B only when paused or game over
             if (keysDown & KEY_B) {
-                saveGameState();
+                //saveGameState();
                 tsl::Overlay::get()->close();
             }
     
