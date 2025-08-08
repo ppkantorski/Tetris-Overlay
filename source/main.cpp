@@ -975,34 +975,29 @@ public:
 
     // Override the draw method to customize rendering logic for Tetris
     virtual void draw(tsl::gfx::Renderer* renderer) override {
-        if (m_noClickableItems != noClickableItems)
-            noClickableItems = m_noClickableItems;
-
-        if (!ult::themeIsInitialized) {
-            tsl::initializeThemeVars(); // Initialize variables for ultrahand themes
-            ult::themeIsInitialized = true;
+        if (m_noClickableItems != ult::noClickableItems.load(std::memory_order_acquire)) {
+            ult::noClickableItems.store(m_noClickableItems, std::memory_order_release);
         }
-
+    
+        if (!ult::themeIsInitialized.load(std::memory_order_acquire)) {
+            ult::themeIsInitialized.store(true, std::memory_order_release);
+            tsl::initializeThemeVars();
+        }
+    
         renderer->fillScreen(a(tsl::defaultBackgroundColor));
-        
         renderer->drawWallpaper();
-
-        // Call the extracted widget drawing method
         renderer->drawWidget();
-
-
+    
         if (touchingMenu && inMainMenu) {
             renderer->drawRoundedRect(0.0f, 12.0f, 245.0f, 73.0f, 6.0f, a(tsl::clickColor));
         }
-        
         
         x = 20;
         y = 62;
         fontSize = 54;
         offset = 6;
         countOffset = 0;
-        
-
+    
         if (ult::useDynamicLogo) {
             const auto currentTimeCount = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
             float progress;
@@ -1011,13 +1006,13 @@ public:
             static tsl::Color highlightColor(0);
             for (char letter : m_title) {
                 counter = (2 * _M_PI * (fmod(currentTimeCount/4.0, 2.0) + countOffset) / 2.0);
-                progress = std::sin(3.0 * (counter - (2.0 * _M_PI / 3.0))); // Faster transition from -1 to 1 and back in the remaining 1/3
+                progress = std::sin(3.0 * (counter - (2.0 * _M_PI / 3.0)));
                 
                 highlightColor = {
                     static_cast<u8>((dynamicLogoRGB2.r - dynamicLogoRGB1.r) * (progress + 1.0) / 2.0 + dynamicLogoRGB1.r),
                     static_cast<u8>((dynamicLogoRGB2.g - dynamicLogoRGB1.g) * (progress + 1.0) / 2.0 + dynamicLogoRGB1.g),
                     static_cast<u8>((dynamicLogoRGB2.b - dynamicLogoRGB1.b) * (progress + 1.0) / 2.0 + dynamicLogoRGB1.b),
-                    15 // Alpha remains constant, or you can interpolate it as well
+                    15
                 };
                 
                 renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, a(highlightColor));
@@ -1031,16 +1026,20 @@ public:
                 countOffset -= 0.2F;
             }
         }
-        
-
+    
         renderer->drawString(this->m_subtitle, false, 184, y-8, 15, (tsl::bannerVersionTextColor));
-        
         renderer->drawRect(15, tsl::cfg::FramebufferHeight - 73, tsl::cfg::FramebufferWidth - 30, 1, a(tsl::bottomSeparatorColor));
-        
-
+    
+        // Calculate gap width and store half gap (matching original code)
+        const float gapWidth = renderer->getTextDimensions(ult::GAP_1, false, 23).first;
+        const float _halfGap = gapWidth / 2.0f;
+        if (_halfGap != ult::halfGap.load(std::memory_order_acquire))
+            ult::halfGap.store(_halfGap, std::memory_order_release);
+    
+        // Determine button commands based on game state
         static std::string bCommand;
         static std::string aCommand;
-
+    
         if (isGameOver) {
             bCommand = BACK;
             aCommand = "New Game";
@@ -1054,52 +1053,47 @@ public:
             aCommand = "Rotate Right";
             m_noClickableItems = false;
         }
-
-        backWidth = tsl::gfx::calculateStringWidth(bCommand, 23);
-        if (touchingBack) {
-            renderer->drawRoundedRect(18.0f, static_cast<float>(tsl::cfg::FramebufferHeight - 73), 
-                                      backWidth+68.0f, 73.0f, 6.0f, a(tsl::clickColor));
+    
+        // Calculate text widths for buttons
+        const float backTextWidth = renderer->getTextDimensions(
+            "\uE0E1" + ult::GAP_2 + bCommand, false, 23).first;
+        const float selectTextWidth = renderer->getTextDimensions(
+            "\uE0E0" + ult::GAP_2 + aCommand, false, 23).first;
+    
+        // Total button widths include half-gap padding on both sides (matching original)
+        const float _backWidth = backTextWidth + gapWidth;
+        if (_backWidth != ult::backWidth.load(std::memory_order_acquire))
+            ult::backWidth.store(_backWidth, std::memory_order_release);
+        const float _selectWidth = selectTextWidth + gapWidth;
+        if (_selectWidth != ult::selectWidth.load(std::memory_order_acquire))
+            ult::selectWidth.store(_selectWidth, std::memory_order_release);
+    
+        // Set button positions (matching original)
+        static constexpr float buttonStartX = 30;
+        const float buttonY = static_cast<float>(tsl::cfg::FramebufferHeight - 73 + 1);
+    
+        // Draw back button if touched
+        if (ult::touchingBack.load(std::memory_order_acquire)) {
+            renderer->drawRoundedRect(buttonStartX+2 - _halfGap, buttonY, _backWidth-1, 73.0f, 10.0f, a(tsl::clickColor));
         }
-
-        selectWidth = tsl::gfx::calculateStringWidth(aCommand, 23);
-        if (touchingSelect && !m_noClickableItems) {
-            renderer->drawRoundedRect(18.0f + backWidth+68.0f, static_cast<float>(tsl::cfg::FramebufferHeight - 73), 
-                                      selectWidth+68.0f, 73.0f, 6.0f, a(tsl::clickColor));
+    
+        // Draw select button if touched
+        if (ult::touchingSelect.load(std::memory_order_acquire) && !m_noClickableItems) {
+            renderer->drawRoundedRect(buttonStartX+2 - _halfGap + _backWidth+1, buttonY,
+                                      _selectWidth-2, 73.0f, 10.0f, a(tsl::clickColor));
         }
-        
-        //if (inMainMenu)
-        //    if (inOverlaysPage)
-        //        nextPageWidth = tsl::gfx::calculateStringWidth(ult::PACKAGES,23);
-        //    else if (inPackagesPage)
-        //        nextPageWidth = tsl::gfx::calculateStringWidth(OVERLAYS,23);
-
-        if (inMainMenu) {
-            if (touchingNextPage) {
-                renderer->drawRoundedRect(18.0f + backWidth+68.0f + ((!m_noClickableItems) ? selectWidth+68.0f : 0), static_cast<float>(tsl::cfg::FramebufferHeight - 73), 
-                                          nextPageWidth+70.0f, 73.0f, 6.0f, a(tsl::clickColor));
-            }
-        }
-
-        const std::string menuBottomLine = m_noClickableItems ? "\uE0E1"+GAP_2+bCommand+GAP_1 : "\uE0E1"+GAP_2+bCommand+GAP_1+"\uE0E0"+GAP_2+aCommand+GAP_1;
-
-        //if (this->m_menuMode == "packages") {
-        //    menuBottomLine += "\uE0ED"+GAP_2+OVERLAYS;
-        //} else if (this->m_menuMode == "overlays") {
-        //    menuBottomLine += "\uE0EE"+GAP_2+ult::PACKAGES;
-        //}
-        
-        //if (!(this->m_pageLeftName).empty()) {
-        //    menuBottomLine += "\uE0ED"+GAP_2 + this->m_pageLeftName;
-        //} else if (!(this->m_pageRightName).empty()) {
-        //    menuBottomLine += "\uE0EE"+GAP_2 + this->m_pageRightName;
-        //}
-        
-        
+    
+        // Build menu bottom line
+        const std::string menuBottomLine = m_noClickableItems ? 
+            "\uE0E1" + ult::GAP_2 + bCommand + ult::GAP_1 : 
+            "\uE0E1" + ult::GAP_2 + bCommand + ult::GAP_1 + "\uE0E0" + ult::GAP_2 + aCommand + ult::GAP_1;
+    
         // Render the text with special character handling
         static const std::vector<std::string> symbols = {"\uE0E1","\uE0E0","\uE0ED","\uE0EE"};
-        renderer->drawStringWithColoredSections(menuBottomLine, false, symbols, 30, 693, 23, (tsl::bottomTextColor), (tsl::buttonColor));
-
-        
+        renderer->drawStringWithColoredSections(menuBottomLine, false, symbols, 
+                                                buttonStartX, 693, 23, 
+                                                (tsl::bottomTextColor), (tsl::buttonColor));
+    
         if (this->m_contentElement != nullptr)
             this->m_contentElement->frame(renderer);
     }
@@ -1603,7 +1597,7 @@ public:
                     leftARR = false; // Reset ARR phase
                 } else {
                     // DAS check
-                    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastLeftMove).count();
+                    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastLeftMove).count();
                     if (!leftARR && elapsed >= DAS) {
                         // Once DAS is reached, start ARR
                         moved = move(-1, 0);
