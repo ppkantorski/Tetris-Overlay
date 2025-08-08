@@ -1587,7 +1587,7 @@ public:
         } else {
             
             // Handle swapping with the stored Tetrimino
-            if (keysDown & KEY_L && !hasSwapped) {
+            if (keysDown & KEY_L && !(keysHeld & ~(KEY_L|KEY_LEFT|KEY_RIGHT|KEY_DOWN|KEY_UP) & ALL_KEYS_MASK) && !hasSwapped) {
                 swapStoredTetrimino();
                 hasSwapped = true;
             }
