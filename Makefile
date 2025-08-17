@@ -55,7 +55,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 #---------------------------------------------------------------------------------
 APP_TITLE	:= Tetris
 APP_AUTHOR	:= ppkantorski
-APP_VERSION	:= 0.3.7
+APP_VERSION	:= 0.3.8
 TARGET	    := tetris
 BUILD	    := build
 SOURCES	    := source 
