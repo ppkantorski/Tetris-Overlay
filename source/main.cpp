@@ -589,8 +589,8 @@ public:
                 static const std::string remainingText = "Tetris";
                 
                 for (char letter : remainingText) {
-                    counter = (2 * _M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
-                    transitionProgress = std::sin(3.0 * (counter - (2.0 * _M_PI / 3.0)));
+                    counter = (2 * ult::M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
+                    transitionProgress = std::sin(3.0 * (counter - (2.0 * ult::M_PI / 3.0)));
                     
                     highlightColor = {
                         static_cast<u8>((dynamicLogoRGB2.r - dynamicLogoRGB1.r) * (transitionProgress + 1.0) / 2.0 + dynamicLogoRGB1.r),
@@ -608,8 +608,8 @@ public:
             } else if (linesClearedText == "Tetris") {
                 // Handle "Tetris" with dynamic color effect
                 for (char letter : linesClearedText) {
-                    counter = (2 * _M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
-                    transitionProgress = std::sin(3.0 * (counter - (2.0 * _M_PI / 3.0)));
+                    counter = (2 * ult::M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
+                    transitionProgress = std::sin(3.0 * (counter - (2.0 * ult::M_PI / 3.0)));
                     
                     highlightColor = {
                         static_cast<u8>((dynamicLogoRGB2.r - dynamicLogoRGB1.r) * (transitionProgress + 1.0) / 2.0 + dynamicLogoRGB1.r),
@@ -1005,8 +1005,8 @@ public:
             static const auto dynamicLogoRGB2 = tsl::RGB888("#fff429");
             static tsl::Color highlightColor(0);
             for (char letter : m_title) {
-                counter = (2 * _M_PI * (fmod(currentTimeCount/4.0, 2.0) + countOffset) / 2.0);
-                progress = std::sin(3.0 * (counter - (2.0 * _M_PI / 3.0)));
+                counter = (2 * ult::M_PI * (fmod(currentTimeCount/4.0, 2.0) + countOffset) / 2.0);
+                progress = std::sin(3.0 * (counter - (2.0 * ult::M_PI / 3.0)));
                 
                 highlightColor = {
                     static_cast<u8>((dynamicLogoRGB2.r - dynamicLogoRGB1.r) * (progress + 1.0) / 2.0 + dynamicLogoRGB1.r),
@@ -1564,6 +1564,7 @@ public:
                 isGameOver = true;
                 if (keysDown & KEY_A || keysDown & KEY_PLUS) {
                     // Restart game
+                    triggerRumbleDoubleClick.store(true, std::memory_order_release);
                     resetGame();
                     return true;
                 }
@@ -1574,11 +1575,13 @@ public:
             }
             // Unpause if KEY_PLUS is pressed
             if (keysDown & KEY_PLUS) {
+                triggerRumbleClick.store(true, std::memory_order_release);
                 TetrisElement::paused = false;
             }
             // Allow closing the overlay with KEY_B only when paused or game over
             if (keysDown & KEY_B) {
                 //saveGameState();
+                triggerRumbleDoubleClick.store(true, std::memory_order_release);
                 tsl::Overlay::get()->close();
             }
     
@@ -1588,6 +1591,7 @@ public:
             
             // Handle swapping with the stored Tetrimino
             if (keysDown & KEY_L && !(keysHeld & ~(KEY_L|KEY_LEFT|KEY_RIGHT|KEY_DOWN|KEY_UP) & ALL_KEYS_MASK) && !hasSwapped) {
+                triggerRumbleDoubleClick.store(true, std::memory_order_release);
                 swapStoredTetrimino();
                 hasSwapped = true;
             }
@@ -1597,6 +1601,9 @@ public:
                 if (!leftHeld) {
                     // First press
                     moved = move(-1, 0);
+                    if (moved) {
+                        triggerRumbleClick.store(true, std::memory_order_release);
+                    }
                     lastLeftMove = currentTime;
                     leftHeld = true;
                     leftARR = false; // Reset ARR phase
@@ -1606,14 +1613,21 @@ public:
                     if (!leftARR && elapsed >= DAS) {
                         // Once DAS is reached, start ARR
                         moved = move(-1, 0);
+                        if (moved) {
+                            triggerRumbleClick.store(true, std::memory_order_release);
+                        }
                         lastLeftMove = currentTime; // Reset time for ARR phase
                         leftARR = true;
                     } else if (leftARR && elapsed >= ARR) {
                         // Auto-repeat after ARR interval
                         moved = move(-1, 0);
+                        if (moved) {
+                            triggerRumbleClick.store(true, std::memory_order_release);
+                        }
                         lastLeftMove = currentTime; // Keep resetting for ARR
                     }
                 }
+                
             } else {
                 leftHeld = false;
             }
@@ -1622,7 +1636,11 @@ public:
             if (keysHeld & KEY_RIGHT) {
                 if (!rightHeld) {
                     // First press
+                    
                     moved = move(1, 0);
+                    if (moved) {
+                        triggerRumbleClick.store(true, std::memory_order_release);
+                    }
                     lastRightMove = currentTime;
                     rightHeld = true;
                     rightARR = false; // Reset ARR phase
@@ -1632,11 +1650,17 @@ public:
                     if (!rightARR && elapsed >= DAS) {
                         // Once DAS is reached, start ARR
                         moved = move(1, 0);
+                        if (moved) {
+                            triggerRumbleClick.store(true, std::memory_order_release);
+                        }
                         lastRightMove = currentTime;
                         rightARR = true;
                     } else if (rightARR && elapsed >= ARR) {
                         // Auto-repeat after ARR interval
                         moved = move(1, 0);
+                        if (moved) {
+                            triggerRumbleClick.store(true, std::memory_order_release);
+                        }
                         lastRightMove = currentTime; // Keep resetting for ARR
                     }
                 }
@@ -1649,6 +1673,7 @@ public:
                 if (!downHeld) {
                     // Check if the piece is on the floor and lock it immediately
                     if (isOnFloor()) {
+                        triggerRumbleDoubleClick.store(true, std::memory_order_release);
                         hardDrop();
                     } else {
                         // First press
@@ -1663,6 +1688,7 @@ public:
                     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastDownMove).count();
                     if (!downARR && elapsed >= DAS) {
                         if (isOnFloor()) {
+                            triggerRumbleDoubleClick.store(true, std::memory_order_release);
                             hardDrop();
                         } else {
                             // Once DAS is reached, start ARR
@@ -1672,6 +1698,7 @@ public:
                         }
                     } else if (downARR && elapsed >= ARR) {
                         if (isOnFloor()) {
+                            triggerRumbleDoubleClick.store(true, std::memory_order_release);
                             hardDrop();
                         } else {
                             // Auto-repeat after ARR interval
@@ -1687,20 +1714,24 @@ public:
             
             // Handle hard drop with the Up key
             if (keysDown & KEY_UP) {
+                triggerRumbleDoubleClick.store(true, std::memory_order_release);
                 hardDrop();  // Perform hard drop immediately
             }
             
             // Handle rotation inputs
             if (keysDown & KEY_A) {
+                triggerRumbleClick.store(true, std::memory_order_release);
                 rotate(); // Rotate clockwise
                 moved = true;
             } else if (keysDown & KEY_B) {
+                triggerRumbleClick.store(true, std::memory_order_release);
                 rotateCounterclockwise(); // Rotate counterclockwise
                 moved = true;
             }
             
             // Handle pause/unpause
             if (keysDown & KEY_PLUS) {
+                triggerRumbleClick.store(true, std::memory_order_release);
                 TetrisElement::paused = !TetrisElement::paused;
             }
             
@@ -2289,7 +2320,6 @@ private:
         }
     }
     
-
 
 
 };
