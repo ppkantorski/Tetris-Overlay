@@ -1564,6 +1564,7 @@ public:
                 isGameOver = true;
                 if (keysDown & KEY_A || keysDown & KEY_PLUS) {
                     // Restart game
+                    disableSound.exchange(true, std::memory_order_acq_rel);
                     triggerRumbleDoubleClick.store(true, std::memory_order_release);
                     resetGame();
                     return true;
@@ -1575,6 +1576,7 @@ public:
             }
             // Unpause if KEY_PLUS is pressed
             if (keysDown & KEY_PLUS) {
+                disableSound.exchange(true, std::memory_order_acq_rel);
                 triggerRumbleClick.store(true, std::memory_order_release);
                 TetrisElement::paused = false;
             }
