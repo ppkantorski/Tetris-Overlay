@@ -1723,12 +1723,16 @@ public:
             // Handle rotation inputs
             if (keysDown & KEY_A) {
                 triggerRumbleClick.store(true, std::memory_order_release);
-                rotate(); // Rotate clockwise
-                moved = true;
+                //bool rotated = rotate(); // Rotate clockwise
+                if (rotate()) {
+                    moved = true;
+                }
             } else if (keysDown & KEY_B) {
                 triggerRumbleClick.store(true, std::memory_order_release);
-                rotateCounterclockwise(); // Rotate counterclockwise
-                moved = true;
+                //bool rotated = rotateCounterclockwise(); // Rotate counterclockwise
+                if (rotateCounterclockwise()) {
+                    moved = true;
+                }
             }
             
             // Handle pause/unpause
@@ -1905,30 +1909,52 @@ private:
         return success;
     }
 
-    void rotate() {
+    bool rotate() {
+        const int previousRotation = currentTetrimino.rotation;
+        const int previousX = currentTetrimino.x;
+        const int previousY = currentTetrimino.y;
+        
         rotatePiece(-1); // Clockwise rotation
+        
+        // Check if rotation actually succeeded by comparing state
+        return (currentTetrimino.rotation != previousRotation || 
+                currentTetrimino.x != previousX || 
+                currentTetrimino.y != previousY);
     }
-
-    // New method to rotate counterclockwise
-    void rotateCounterclockwise() {
+    
+    bool rotateCounterclockwise() {
+        const int previousRotation = currentTetrimino.rotation;
+        const int previousX = currentTetrimino.x;
+        const int previousY = currentTetrimino.y;
+        
         rotatePiece(1); // Counterclockwise rotation
+        
+        // Check if rotation actually succeeded by comparing state
+        return (currentTetrimino.rotation != previousRotation || 
+                currentTetrimino.x != previousX || 
+                currentTetrimino.y != previousY);
     }
 
     bool tSpinOccurred = false; // Add this member to TetrisGui class
     
     void rotatePiece(int direction) {
-        std::lock_guard<std::mutex> lock(boardMutex);  // Lock the board for safe rotation
+        std::lock_guard<std::mutex> lock(boardMutex);
         
         const int previousRotation = currentTetrimino.rotation;
         const int previousX = currentTetrimino.x;
         const int previousY = currentTetrimino.y;
+        
+        // O piece doesn't rotate - early return
+        if (currentTetrimino.type == 3) {
+            return;
+        }
         
         // Perform rotation
         currentTetrimino.rotation = (currentTetrimino.rotation + direction + 4) % 4;
         
         const auto& kicks = (currentTetrimino.type == 0) ? wallKicksI : wallKicksJLSTZ;
         
-        lastWallKickApplied = false;  // Reset the wall kick flag
+        lastWallKickApplied = false;
         bool rotationSuccessful = false;
         
         // First, check if the piece can fit without any kick
@@ -1936,10 +1962,18 @@ private:
             rotationSuccessful = true;
             pieceWasKickedUp = false;
         } else {
+            // Calculate the correct wall kick index based on rotation transition
             int kickIndex;
-            // Try the standard wall kicks if the piece doesn't fit
+            if (direction < 0) {
+                // Clockwise: 0->1, 1->2, 2->3, 3->0
+                kickIndex = previousRotation;
+            } else {
+                // Counter-clockwise: 1->0, 2->1, 3->2, 0->3
+                kickIndex = currentTetrimino.rotation;
+            }
+            
+            // Try the standard wall kicks
             for (int i = 0; i < 5; ++i) {
-                kickIndex = (direction > 0) ? previousRotation : currentTetrimino.rotation;
                 const auto& kick = kicks[kickIndex][i];
                 
                 // Apply the kick
@@ -1949,8 +1983,6 @@ private:
                 if (isPositionValid(currentTetrimino, board)) {
                     rotationSuccessful = true;
                     lastWallKickApplied = (kick.first != 0 || kick.second != 0);
-                    
-                    // Check if the piece was kicked upwards
                     pieceWasKickedUp = (kick.second < 0);
                     break;
                 }
@@ -1958,7 +1990,10 @@ private:
     
             // If standard kicks fail, try extra kicks in tight spaces
             if (!rotationSuccessful) {
-                static constexpr std::array<std::pair<int, int>, 7> extraKicks = {{ {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2}, {2, 0}, {-2, 0} }};
+                static constexpr std::array<std::pair<int, int>, 7> extraKicks = {{
+                    {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2}, {2, 0}, {-2, 0}
+                }};
+                
                 for (const auto& kick : extraKicks) {
                     currentTetrimino.x = previousX + kick.first;
                     currentTetrimino.y = previousY + kick.second;
@@ -1966,8 +2001,6 @@ private:
                     if (isPositionValid(currentTetrimino, board)) {
                         rotationSuccessful = true;
                         lastWallKickApplied = true;
-                        
-                        // Check if the piece was kicked upwards
                         pieceWasKickedUp = (kick.second < 0);
                         break;
                     }
@@ -1981,20 +2014,19 @@ private:
             currentTetrimino.x = previousX;
             currentTetrimino.y = previousY;
             pieceWasKickedUp = false;
+            return; // Exit early - no lock delay reset needed
         }
     
-        // Reset lock delay only if the rotation was successful and state changed
-        if ((rotationSuccessful && currentTetrimino.rotation != previousRotation) || currentTetrimino.type == 3) {
-            if (isOnFloor()) {
-                if (lockDelayMoves < maxLockDelayMoves) {
-                    lockDelayCounter = std::chrono::milliseconds(0);
-                    lastRotationOrMoveTime = std::chrono::steady_clock::now();
-                    lockDelayMoves++;
-                }
-            } else {
+        // Reset lock delay only if the rotation was successful
+        if (isOnFloor()) {
+            if (lockDelayMoves < maxLockDelayMoves) {
                 lockDelayCounter = std::chrono::milliseconds(0);
                 lastRotationOrMoveTime = std::chrono::steady_clock::now();
+                lockDelayMoves++;
             }
+        } else {
+            lockDelayCounter = std::chrono::milliseconds(0);
+            lastRotationOrMoveTime = std::chrono::steady_clock::now();
         }
     }
     
