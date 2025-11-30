@@ -1335,6 +1335,7 @@ public:
 
     
     void saveGameState() {
+        
         cJSON* root = cJSON_CreateObject();
     
         // Save general game state
@@ -2363,6 +2364,7 @@ public:
 
     virtual void initServices() override {
         tsl::overrideBackButton = true; // for properly overriding the always go back functionality of KEY_B
+        ult::createDirectory("sdmc:/config/tetris/");
     }
 
     virtual void exitServices() override {}
