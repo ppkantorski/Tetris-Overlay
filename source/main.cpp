@@ -1676,7 +1676,7 @@ public:
                 if (!downHeld) {
                     // Check if the piece is on the floor and lock it immediately
                     if (isOnFloor()) {
-                        triggerRumbleDoubleClick.store(true, std::memory_order_release);
+                        triggerRumbleClick.store(true, std::memory_order_release);
                         hardDrop();
                     } else {
                         // First press
@@ -1691,7 +1691,7 @@ public:
                     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastDownMove).count();
                     if (!downARR && elapsed >= DAS) {
                         if (isOnFloor()) {
-                            triggerRumbleDoubleClick.store(true, std::memory_order_release);
+                            triggerRumbleClick.store(true, std::memory_order_release);
                             hardDrop();
                         } else {
                             // Once DAS is reached, start ARR
@@ -1701,7 +1701,7 @@ public:
                         }
                     } else if (downARR && elapsed >= ARR) {
                         if (isOnFloor()) {
-                            triggerRumbleDoubleClick.store(true, std::memory_order_release);
+                            triggerRumbleClick.store(true, std::memory_order_release);
                             hardDrop();
                         } else {
                             // Auto-repeat after ARR interval
@@ -1717,7 +1717,7 @@ public:
             
             // Handle hard drop with the Up key
             if (keysDown & KEY_UP) {
-                triggerRumbleDoubleClick.store(true, std::memory_order_release);
+                triggerRumbleClick.store(true, std::memory_order_release);
                 hardDrop();  // Perform hard drop immediately
             }
             
@@ -1745,6 +1745,7 @@ public:
             // Reset the lock delay timer if the piece has moved or rotated
             if (moved) {
                 lockDelayCounter = std::chrono::milliseconds(0);
+                return true;
             }
             
         }
@@ -1991,19 +1992,41 @@ private:
     
             // If standard kicks fail, try extra kicks in tight spaces
             if (!rotationSuccessful) {
-                static constexpr std::array<std::pair<int, int>, 7> extraKicks = {{
-                    {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2}, {2, 0}, {-2, 0}
-                }};
-                
-                for (const auto& kick : extraKicks) {
-                    currentTetrimino.x = previousX + kick.first;
-                    currentTetrimino.y = previousY + kick.second;
+                // More aggressive kicks for I-piece, standard for others
+                if (currentTetrimino.type == 0) {
+                    // I-piece needs more upward kicks
+                    static constexpr std::array<std::pair<int, int>, 11> extraKicksI = {{
+                        {0, -1}, {0, -2}, {0, -3}, {0, 1}, 
+                        {1, 0}, {-1, 0}, {2, 0}, {-2, 0},
+                        {1, -1}, {-1, -1}, {0, 2}
+                    }};
                     
-                    if (isPositionValid(currentTetrimino, board)) {
-                        rotationSuccessful = true;
-                        lastWallKickApplied = true;
-                        pieceWasKickedUp = (kick.second < 0);
-                        break;
+                    for (const auto& kick : extraKicksI) {
+                        currentTetrimino.x = previousX + kick.first;
+                        currentTetrimino.y = previousY + kick.second;
+                        
+                        if (isPositionValid(currentTetrimino, board)) {
+                            rotationSuccessful = true;
+                            lastWallKickApplied = true;
+                            pieceWasKickedUp = (kick.second < 0);
+                            break;
+                        }
+                    }
+                } else {
+                    static constexpr std::array<std::pair<int, int>, 7> extraKicks = {{
+                        {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2}, {2, 0}, {-2, 0}
+                    }};
+                    
+                    for (const auto& kick : extraKicks) {
+                        currentTetrimino.x = previousX + kick.first;
+                        currentTetrimino.y = previousY + kick.second;
+                        
+                        if (isPositionValid(currentTetrimino, board)) {
+                            rotationSuccessful = true;
+                            lastWallKickApplied = true;
+                            pieceWasKickedUp = (kick.second < 0);
+                            break;
+                        }
                     }
                 }
             }
@@ -2294,6 +2317,8 @@ private:
             tetrisElement->showText = true;
             tetrisElement->fadeAlpha = 0.0f;  // Start fade animation
             tetrisElement->textStartTime = std::chrono::steady_clock::now();  // Track animation start time
+
+            triggerRumbleDoubleClick.store(true, std::memory_order_release);
         }
         
 
@@ -2301,6 +2326,7 @@ private:
     
     
     void spawnNewTetrimino() {
+        triggerRumbleClick.store(true, std::memory_order_release);
         // Move nextTetrimino to currentTetrimino
         currentTetrimino = nextTetrimino;
         
