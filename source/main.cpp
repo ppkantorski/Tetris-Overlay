@@ -277,6 +277,10 @@ public:
     int clearedLinesYPosition = 0; // Y-position of cleared lines to center text
     std::chrono::time_point<std::chrono::steady_clock> textStartTime;
 
+    // Rain effect variables for Game Over
+    std::chrono::time_point<std::chrono::steady_clock> lastRainSpawn;
+    static constexpr int RAIN_SPAWN_INTERVAL_MS = 50; // Spawn new rain particles every 50ms
+
     TetrisElement(u16 w, u16 h, std::array<std::array<int, BOARD_WIDTH>, BOARD_HEIGHT> *board, 
                   Tetrimino *current, Tetrimino *next, Tetrimino *stored, 
                   Tetrimino *next1, Tetrimino *next2)
@@ -405,7 +409,9 @@ public:
 
         // Update the particles
         updateParticles(offsetX, offsetY);
-        drawParticles(renderer, offsetX, offsetY);
+        if (!gameOver) {
+            drawParticles(renderer, offsetX, offsetY);
+        }
         
 
         static std::chrono::time_point<std::chrono::steady_clock> gameOverStartTime; // Track the time when game over starts
@@ -442,6 +448,7 @@ public:
                     // If 0.5 seconds have passed, display the "Game Over" text
                     if (elapsedTime >= std::chrono::milliseconds(500)) {
                         gameOverTextDisplayed = true;
+                        lastRainSpawn = std::chrono::steady_clock::now(); // Initialize rain spawn timer
                     }
                 }
                 
@@ -452,10 +459,25 @@ public:
                     
                     // Calculate text width to center the text
                     const int textWidth = tsl::gfx::calculateStringWidth("Game Over", 24);
+                    const int textX = centerX - textWidth / 2;
                     
                     // Draw "Game Over" at the center of the board
-                    renderer->drawString("Game Over", false, centerX - textWidth / 2, centerY, 24, redColor);
+                    renderer->drawString("Game Over", false, textX, centerY, 24, redColor);
+                    
+                    // Create rain particles periodically
+                    const auto currentTime = std::chrono::steady_clock::now();
+                    const auto timeSinceLastRain = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        currentTime - lastRainSpawn
+                    );
+                    
+                    if (timeSinceLastRain.count() >= RAIN_SPAWN_INTERVAL_MS) {
+                        createRainParticles(textX, textWidth, centerY, offsetX, offsetY);
+                        lastRainSpawn = currentTime;
+                    }
+                    // Draw rain particles ON TOP of the black overlay
+                    drawParticles(renderer, offsetX, offsetY);
                 }
+            
             } else if (paused) {
                 // Set the text color to green
                 static constexpr tsl::Color greenColor = tsl::Color({0x0, 0xF, 0x0, 0xF});
@@ -692,7 +714,32 @@ public:
         }
     }
 
-
+    void createRainParticles(int textX, int textWidth, int textY, int offsetX, int offsetY) {
+        std::lock_guard<std::mutex> lock(particleMutex);
+        
+        // Spawn 3-5 particles across the text width
+        const int particleCount = 3 + rand() % 3;
+        
+        for (int i = 0; i < particleCount; ++i) {
+            // Random X position across the text width (convert from screen coords to board coords)
+            const float startX = (textX - offsetX) + (rand() % textWidth);
+            const float startY = (textY - offsetY) + 10; // Start just below the text (convert to board coords)
+            
+            // Slight horizontal drift and consistent downward velocity
+            const float horizontalDrift = (rand() % 100 / 100.0f - 0.5f) * 0.5f; // Very slight drift
+            const float downwardVelocity = 2.0f + (rand() % 100 / 100.0f); // 2-3 pixels per frame
+            
+            Particle particle = {
+                startX,
+                startY,
+                horizontalDrift,
+                downwardVelocity,
+                1.0f,  // Lifespan
+                1.0f   // Alpha (fully visible)
+            };
+            particles.push_back(particle);
+        }
+    }
 
     uint64_t getScore() {
         return scoreValue;
@@ -1974,7 +2021,7 @@ private:
                 kickIndex = currentTetrimino.rotation;
             }
             
-            // Try the standard wall kicks
+            // Try the standard wall kicks FIRST
             for (int i = 0; i < 5; ++i) {
                 const auto& kick = kicks[kickIndex][i];
                 
@@ -1990,43 +2037,38 @@ private:
                 }
             }
     
-            // If standard kicks fail, try extra kicks in tight spaces
+            // If standard kicks fail, try extra kicks with MORE aggressive options for ALL pieces
             if (!rotationSuccessful) {
-                // More aggressive kicks for I-piece, standard for others
+                // Extended kicks that work for L, J, and other pieces against walls
+                std::array<std::pair<int, int>, 16> extraKicks;
+                
                 if (currentTetrimino.type == 0) {
                     // I-piece needs more upward kicks
-                    static constexpr std::array<std::pair<int, int>, 11> extraKicksI = {{
+                    extraKicks = {{
                         {0, -1}, {0, -2}, {0, -3}, {0, 1}, 
                         {1, 0}, {-1, 0}, {2, 0}, {-2, 0},
-                        {1, -1}, {-1, -1}, {0, 2}
+                        {1, -1}, {-1, -1}, {0, 2},
+                        {1, 1}, {-1, 1}, {2, -1}, {-2, -1}, {1, -2}
                     }};
-                    
-                    for (const auto& kick : extraKicksI) {
-                        currentTetrimino.x = previousX + kick.first;
-                        currentTetrimino.y = previousY + kick.second;
-                        
-                        if (isPositionValid(currentTetrimino, board)) {
-                            rotationSuccessful = true;
-                            lastWallKickApplied = true;
-                            pieceWasKickedUp = (kick.second < 0);
-                            break;
-                        }
-                    }
                 } else {
-                    static constexpr std::array<std::pair<int, int>, 7> extraKicks = {{
-                        {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2}, {2, 0}, {-2, 0}
+                    // More comprehensive kicks for L, J, S, T, Z pieces
+                    extraKicks = {{
+                        {0, 1}, {0, -1}, {1, 0}, {-1, 0}, 
+                        {0, 2}, {2, 0}, {-2, 0},
+                        {1, 1}, {-1, 1}, {1, -1}, {-1, -1},
+                        {0, -2}, {2, 1}, {-2, 1}, {2, -1}, {-2, -1}
                     }};
+                }
+                
+                for (const auto& kick : extraKicks) {
+                    currentTetrimino.x = previousX + kick.first;
+                    currentTetrimino.y = previousY + kick.second;
                     
-                    for (const auto& kick : extraKicks) {
-                        currentTetrimino.x = previousX + kick.first;
-                        currentTetrimino.y = previousY + kick.second;
-                        
-                        if (isPositionValid(currentTetrimino, board)) {
-                            rotationSuccessful = true;
-                            lastWallKickApplied = true;
-                            pieceWasKickedUp = (kick.second < 0);
-                            break;
-                        }
+                    if (isPositionValid(currentTetrimino, board)) {
+                        rotationSuccessful = true;
+                        lastWallKickApplied = true;
+                        pieceWasKickedUp = (kick.second < 0);
+                        break;
                     }
                 }
             }
