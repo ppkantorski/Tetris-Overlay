@@ -1118,18 +1118,23 @@ public:
         // Set button positions (matching original)
         static constexpr float buttonStartX = 30;
         const float buttonY = static_cast<float>(tsl::cfg::FramebufferHeight - 73 + 1);
-    
+        
+        //static bool triggerOnce = true;
+
         // Draw back button if touched
         if (ult::touchingBack.load(std::memory_order_acquire)) {
             renderer->drawRoundedRect(buttonStartX+2 - _halfGap, buttonY, _backWidth-1, 73.0f, 10.0f, a(tsl::clickColor));
         }
     
         // Draw select button if touched
-        if (ult::touchingSelect.load(std::memory_order_acquire) && !m_noClickableItems) {
+        else if (ult::touchingSelect.load(std::memory_order_acquire) && !m_noClickableItems) {
             renderer->drawRoundedRect(buttonStartX+2 - _halfGap + _backWidth+1, buttonY,
                                       _selectWidth-2, 73.0f, 10.0f, a(tsl::clickColor));
         }
-    
+
+        //else
+        //    triggerOnce = true;
+        
         // Build menu bottom line
         const std::string menuBottomLine = m_noClickableItems ? 
             "\uE0E1" + ult::GAP_2 + bCommand + ult::GAP_1 : 
@@ -1612,7 +1617,7 @@ public:
                 isGameOver = true;
                 if (keysDown & KEY_A || keysDown & KEY_PLUS) {
                     // Restart game
-                    disableSound.exchange(true, std::memory_order_acq_rel);
+                    //disableSound.exchange(true, std::memory_order_acq_rel);
                     triggerRumbleDoubleClick.store(true, std::memory_order_release);
                     resetGame();
                     return true;
@@ -1624,7 +1629,7 @@ public:
             }
             // Unpause if KEY_PLUS is pressed
             if (keysDown & KEY_PLUS) {
-                disableSound.exchange(true, std::memory_order_acq_rel);
+                //disableSound.exchange(true, std::memory_order_acq_rel);
                 triggerRumbleClick.store(true, std::memory_order_release);
                 TetrisElement::paused = false;
             }
