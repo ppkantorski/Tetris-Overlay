@@ -611,8 +611,8 @@ public:
                 static const std::string remainingText = "Tetris";
                 
                 for (char letter : remainingText) {
-                    counter = (2 * ult::M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
-                    transitionProgress = std::sin(3.0 * (counter - (2.0 * ult::M_PI / 3.0)));
+                    counter = (2 * ult::_M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
+                    transitionProgress = std::sin(3.0 * (counter - (2.0 * ult::_M_PI / 3.0)));
                     
                     highlightColor = {
                         static_cast<u8>((dynamicLogoRGB2.r - dynamicLogoRGB1.r) * (transitionProgress + 1.0) / 2.0 + dynamicLogoRGB1.r),
@@ -630,8 +630,8 @@ public:
             } else if (linesClearedText == "Tetris") {
                 // Handle "Tetris" with dynamic color effect
                 for (char letter : linesClearedText) {
-                    counter = (2 * ult::M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
-                    transitionProgress = std::sin(3.0 * (counter - (2.0 * ult::M_PI / 3.0)));
+                    counter = (2 * ult::_M_PI * (fmod(currentTimeCount / 4.0, 2.0) + countOffset) / 2.0);
+                    transitionProgress = std::sin(3.0 * (counter - (2.0 * ult::_M_PI / 3.0)));
                     
                     highlightColor = {
                         static_cast<u8>((dynamicLogoRGB2.r - dynamicLogoRGB1.r) * (transitionProgress + 1.0) / 2.0 + dynamicLogoRGB1.r),
@@ -1052,8 +1052,8 @@ public:
             static const auto dynamicLogoRGB2 = tsl::RGB888("#fff429");
             static tsl::Color highlightColor(0);
             for (char letter : m_title) {
-                counter = (2 * ult::M_PI * (fmod(currentTimeCount/4.0, 2.0) + countOffset) / 2.0);
-                progress = std::sin(3.0 * (counter - (2.0 * ult::M_PI / 3.0)));
+                counter = (2 * ult::_M_PI * (fmod(currentTimeCount/4.0, 2.0) + countOffset) / 2.0);
+                progress = std::sin(3.0 * (counter - (2.0 * ult::_M_PI / 3.0)));
                 
                 highlightColor = {
                     static_cast<u8>((dynamicLogoRGB2.r - dynamicLogoRGB1.r) * (progress + 1.0) / 2.0 + dynamicLogoRGB1.r),
