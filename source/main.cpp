@@ -499,19 +499,6 @@ public:
         // Draw the lines-cleared text with smooth sine wave-based color effect for "Tetris" and other lines
         if (showText) {
             
-
-            // Calculate the center position of the board
-            const int centerX = offsetX + (BOARD_WIDTH * _w) / 2;
-            const int centerY = offsetY + (BOARD_HEIGHT * _h) / 2;
-
-            renderer->drawRect(offsetX, centerY - 22, boardWidthInPixels, 26, tsl::Color({0x0, 0x0, 0x0, 0x5}));
-
-            // Calculate text width to center the text
-            const std::string scoreLine = "+" + std::to_string(linesClearedScore);
-            const int textWidth = tsl::gfx::calculateStringWidth(scoreLine, 20);
-            renderer->drawString(scoreLine, false, centerX - textWidth / 2, centerY, 20, tsl::Color({0x0, 0xF, 0x0, 0xF}));
-
-
             const auto currentTime = std::chrono::steady_clock::now();
             std::chrono::duration<float, std::milli> elapsedTime = currentTime - textStartTime;
             
@@ -530,6 +517,7 @@ public:
             // Font size for non-Tetris text
             static constexpr int regularFontSize = 20;
             static constexpr int dynamicFontSize = 24;
+            static constexpr int scoreFontSize = 20;
             
             // Calculate the Y position of the text (vertically centered on the board)
             const int textY = offsetY + (boardHeightInPixels / 2);
@@ -537,6 +525,10 @@ public:
             // Calculate the X position of the text based on the phase
             int textX;
             int totalTextWidth = 0;
+            
+            // Prepare score text
+            const std::string scoreLine = "+" + std::to_string(linesClearedScore);
+            const int scoreWidth = tsl::gfx::calculateStringWidth(scoreLine.c_str(), scoreFontSize);
             
             // For "Tetris" and "2x Tetris", we need to handle the different font sizes and effects
             if (linesClearedText.find("x Tetris") != std::string::npos) {
@@ -598,6 +590,9 @@ public:
             float counter, transitionProgress;
             
             int charWidth;
+            int messageTextStartX = textX;
+            int messageTextWidth = 0;
+            
             // Handle "2x Tetris" special case
             if (linesClearedText.find("x Tetris") != std::string::npos) {
                 //std::string prefix = "2x ";
@@ -627,6 +622,14 @@ public:
                     textX += charWidth;
                     countOffset -= 0.2f;
                 }
+                
+                // Calculate the actual text width (without padding)
+                messageTextWidth = prefixWidth + tsl::gfx::calculateStringWidth(remainingText.c_str(), dynamicFontSize);
+                
+                // Draw score centered relative to the actual text center
+                const int textCenterX = messageTextStartX + messageTextWidth / 2;
+                renderer->drawString(scoreLine.c_str(), false, textCenterX - scoreWidth / 2, textY + dynamicFontSize + 4, scoreFontSize, tsl::Color({0x0, 0xF, 0x0, 0xF}));
+                
             } else if (linesClearedText == "Tetris") {
                 // Handle "Tetris" with dynamic color effect
                 for (char letter : linesClearedText) {
@@ -646,6 +649,14 @@ public:
                     textX += charWidth;
                     countOffset -= 0.2f;
                 }
+                
+                // Calculate the actual text width (without padding)
+                messageTextWidth = tsl::gfx::calculateStringWidth(linesClearedText.c_str(), dynamicFontSize);
+                
+                // Draw score centered relative to the actual text center
+                const int textCenterX = messageTextStartX + messageTextWidth / 2;
+                renderer->drawString(scoreLine.c_str(), false, textCenterX - scoreWidth / 2, textY + dynamicFontSize + 4, scoreFontSize, tsl::Color({0x0, 0xF, 0x0, 0xF}));
+                
             } else if (linesClearedText.find("\n") != std::string::npos) {
                 // Handle multiline text (e.g., "T-Spin\nSingle")
                 std::vector<std::string> lines = splitString(linesClearedText, "\n");
@@ -670,9 +681,22 @@ public:
                     renderer->drawString(line.c_str(), false, centeredTextX, startY, regularFontSize, textColor);
                     startY += lineSpacing;
                 }
+                
+                // Calculate the actual text width (without padding)
+                messageTextWidth = maxLineWidth;
+                
+                // Draw score centered relative to the actual text center
+                const int textCenterX = messageTextStartX + messageTextWidth / 2;
+                renderer->drawString(scoreLine.c_str(), false, textCenterX - scoreWidth / 2, startY + 4, scoreFontSize, tsl::Color({0x0, 0xF, 0x0, 0xF}));
+                
             } else {
                 // Handle single-line text like "Single", "Double"
-                renderer->drawString(linesClearedText.c_str(), false, textX, textY, regularFontSize, textColor);
+                auto textDims = renderer->drawString(linesClearedText.c_str(), false, textX, textY, regularFontSize, textColor);
+                messageTextWidth = textDims.first;
+                
+                // Draw score centered relative to the actual text center
+                const int textCenterX = messageTextStartX + messageTextWidth / 2;
+                renderer->drawString(scoreLine.c_str(), false, textCenterX - scoreWidth / 2, textY + regularFontSize + 4, scoreFontSize, tsl::Color({0x0, 0xF, 0x0, 0xF}));
             }
             
             // Disable scissoring after drawing
@@ -1062,13 +1086,13 @@ public:
                     15
                 };
                 
-                renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, a(highlightColor));
+                renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, highlightColor);
                 x += tsl::gfx::calculateStringWidth(std::string(1, letter), fontSize);
                 countOffset -= 0.2F;
             }
         } else {
             for (char letter : m_title) {
-                renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, a(tsl::logoColor1));
+                renderer->drawString(std::string(1, letter), false, x, y + offset, fontSize, tsl::logoColor1);
                 x += tsl::gfx::calculateStringWidth(std::string(1, letter), fontSize);
                 countOffset -= 0.2F;
             }
