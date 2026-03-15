@@ -11,7 +11,7 @@
 #   GitHub Repository: https://github.com/ppkantorski/Tetris-Overlay
 #
 # Licensed under GPLv2
-# Copyright (c) 2024 ppkantorski
+# Copyright (c) 2024-2026 ppkantorski
 ##################################################################################
 
 #---------------------------------------------------------------------------------
@@ -55,7 +55,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 #---------------------------------------------------------------------------------
 APP_TITLE	:= Tetris
 APP_AUTHOR	:= ppkantorski
-APP_VERSION	:= 0.4.7
+APP_VERSION	:= 0.4.8
 TARGET	    := tetris
 BUILD	    := build
 SOURCES	    := source 
