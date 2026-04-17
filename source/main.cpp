@@ -1320,10 +1320,40 @@ public:
             spawnNewTetrimino(); // ghostDropDistance updated inside spawnNewTetrimino already
         } else {
             std::swap(currentTetrimino, storedTetrimino);
-            currentTetrimino.x = BOARD_WIDTH / 2 - 2;
-            currentTetrimino.y = 0;
             currentTetrimino.rotation = 0;
             storedTetrimino.rotation = 0;
+
+            // Mirror spawnNewTetrimino()'s centering logic: use actual block extents
+            // so the swapped piece is horizontally centered the same way as a freshly spawned one.
+            int rotatedIndex;
+            int minX = 4, maxX = -1;
+            for (int i = 0; i < 4; ++i) {
+                for (int j = 0; j < 4; ++j) {
+                    rotatedIndex = getRotatedIndex(currentTetrimino.type, i, j, currentTetrimino.rotation);
+                    if (tetriminoShapes[currentTetrimino.type][rotatedIndex] != 0) {
+                        if (j < minX) minX = j;
+                        if (j > maxX) maxX = j;
+                    }
+                }
+            }
+            const int pieceWidth = maxX - minX + 1;
+            currentTetrimino.x = (BOARD_WIDTH - pieceWidth) / 2 - minX;
+
+            // Mirror spawnNewTetrimino()'s Y logic: place the piece so its physical
+            // bottom edge is exactly above row 0 (same as a freshly spawned piece).
+            int bottommostRow = -1;
+            for (int i = 3; i >= 0; --i) {
+                for (int j = 0; j < 4; ++j) {
+                    rotatedIndex = getRotatedIndex(currentTetrimino.type, i, j, currentTetrimino.rotation);
+                    if (tetriminoShapes[currentTetrimino.type][rotatedIndex] != 0) {
+                        bottommostRow = i;
+                        break;
+                    }
+                }
+                if (bottommostRow != -1) break;
+            }
+            currentTetrimino.y = -(bottommostRow + 1);
+
             tetrisElement->ghostDropDistance = calculateDropDistance(currentTetrimino, board);
         }
     }
