@@ -1788,6 +1788,11 @@ public:
                         if (!hardDrop()) {  // Only click if no lines cleared
                             triggerRumbleClickFeedback();
                         }
+                        // Mark the button as held so subsequent frames go through DAS/ARR
+                        // gating instead of immediately locking the newly spawned piece.
+                        lastDownMove = currentTime;
+                        downHeld = true;
+                        downARR = false;
                     } else {
                         // First press
                         moved = move(0, 1);
@@ -1804,6 +1809,10 @@ public:
                             if (!hardDrop()) {  // Only click if no lines cleared
                                 triggerRumbleClickFeedback();
                             }
+                            // Reset the timer so the next piece gets a full DAS
+                            // delay before this branch can fire again.
+                            lastDownMove = currentTime;
+                            downARR = false;
                         } else {
                             // Once DAS is reached, start ARR
                             moved = move(0, 1);
@@ -1815,6 +1824,9 @@ public:
                             if (!hardDrop()) {  // Only click if no lines cleared
                                 triggerRumbleClickFeedback();
                             }
+                            // Reset the timer so the next piece gets a full ARR
+                            // interval before this branch can fire again.
+                            lastDownMove = currentTime;
                         } else {
                             // Auto-repeat after ARR interval
                             moved = move(0, 1);
@@ -1951,7 +1963,7 @@ private:
     }
 
     bool isOnFloor() {
-        // If the piece was kicked up, it's not on the floor
+        // Pieces kicked above the board are handled separately.
         if (pieceWasKickedUp) {
             return true;
         }
@@ -1966,6 +1978,12 @@ private:
                 if (tetriminoShapes[currentTetrimino.type][rotatedIndex] != 0) {
                     x = currentTetrimino.x + j;
                     y = currentTetrimino.y + i;
+    
+                    // A block above the visible board means the piece just spawned
+                    // and is not yet on the floor, regardless of what row 0 contains.
+                    if (y < 0) {
+                        return false;
+                    }
     
                     // Check if it's at the bottom of the board or on top of another block
                     if (y + 1 >= BOARD_HEIGHT || board[y + 1][x] != 0) {
